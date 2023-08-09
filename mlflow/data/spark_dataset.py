@@ -117,7 +117,7 @@ class SparkDataset(Dataset, PyFuncConvertibleDatasetMixin):
             # https://spark.apache.org/docs/3.4.0/api/python/_modules/pyspark/rdd.html
             # #RDD.countApprox. This is confirmed to work in all Spark 3.x versions
             py_rdd = self.df.rdd
-            drdd = py_rdd.mapPartitions(lambda it: [float(sum(1 for i in it))])
+            drdd = py_rdd.mapPartitions(lambda it: [float(sum(1 for _ in it))])
             jrdd = drdd.mapPartitions(lambda it: [float(sum(it))])._to_java_object_rdd()
             jdrdd = drdd.ctx._jvm.JavaDoubleRDD.fromRDD(jrdd.rdd())
             timeout_millis = 5000
@@ -167,21 +167,20 @@ class SparkDataset(Dataset, PyFuncConvertibleDatasetMixin):
         To avoid overuse of driver memory, only the first 10,000 DataFrame rows are selected.
         """
         df = self._df.limit(10000).toPandas()
-        if self._targets is not None:
-            if self._targets not in df.columns:
-                raise MlflowException(
-                    f"Failed to convert Spark dataset to pyfunc inputs and outputs because"
-                    f" the pandas representation of the Spark dataset does not contain the"
-                    f" specified targets column '{self._targets}'.",
-                    # This is an internal error because we should have validated the presence of
-                    # the target column in the Hugging Face dataset at construction time
-                    INTERNAL_ERROR,
-                )
-            inputs = df.drop(columns=self._targets)
-            outputs = df[self._targets]
-            return PyFuncInputsOutputs(inputs=inputs, outputs=outputs)
-        else:
+        if self._targets is None:
             return PyFuncInputsOutputs(inputs=df, outputs=None)
+        if self._targets not in df.columns:
+            raise MlflowException(
+                f"Failed to convert Spark dataset to pyfunc inputs and outputs because"
+                f" the pandas representation of the Spark dataset does not contain the"
+                f" specified targets column '{self._targets}'.",
+                # This is an internal error because we should have validated the presence of
+                # the target column in the Hugging Face dataset at construction time
+                INTERNAL_ERROR,
+            )
+        inputs = df.drop(columns=self._targets)
+        outputs = df[self._targets]
+        return PyFuncInputsOutputs(inputs=inputs, outputs=outputs)
 
     def to_evaluation_dataset(self, path=None, feature_names=None) -> EvaluationDataset:
         """

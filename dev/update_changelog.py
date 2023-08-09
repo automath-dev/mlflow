@@ -12,12 +12,12 @@ from packaging.version import Version
 
 
 def get_header_for_version(version):
-    return "## {} ({})".format(version, datetime.now().strftime("%Y-%m-%d"))
+    return f'## {version} ({datetime.now().strftime("%Y-%m-%d")})'
 
 
 def extract_pr_num_from_git_log_entry(git_log_entry):
     m = re.search(r"\(#(\d+)\)$", git_log_entry)
-    return int(m.group(1)) if m else None
+    return int(m[1]) if m else None
 
 
 def format_label(label: str) -> str:
@@ -155,7 +155,9 @@ def main(prev_version, release_version, remote):
             else:
                 label_to_prs[label].append(pr)
 
-    assert len(unlabelled_prs) == 0, "The following PRs need to be categorized:\n" + "\n".join(
+    assert (
+        not unlabelled_prs
+    ), "The following PRs need to be categorized:\n" + "\n".join(
         f"- {pr.url}" for pr in unlabelled_prs
     )
 

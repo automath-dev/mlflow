@@ -113,7 +113,7 @@ if __name__ == "__main__":
 
     plt.xlabel("-Log(alpha)")
     plt.ylabel("coefficients")
-    title = "ElasticNet Path by alpha for l1_ratio = " + str(l1_ratio)
+    title = f"ElasticNet Path by alpha for l1_ratio = {l1_ratio}"
     plt.title(title)
     plt.axis("tight")
 

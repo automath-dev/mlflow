@@ -345,7 +345,7 @@ class _PmdarimaModelWrapper:
 
     def predict(
         self, dataframe, params: Optional[Dict[str, Any]] = None
-    ) -> pd.DataFrame:  # pylint: disable=unused-argument
+    ) -> pd.DataFrame:    # pylint: disable=unused-argument
         """
         :param dataframe: Model input data.
         :param params: Additional parameters to pass to the model for inference.
@@ -417,12 +417,14 @@ class _PmdarimaModelWrapper:
                 alpha=alpha,
             )
 
-        if return_conf_int:
-            ci_low, ci_high = list(zip(*raw_predictions[1]))
-            predictions = pd.DataFrame.from_dict(
-                {"yhat": raw_predictions[0], "yhat_lower": ci_low, "yhat_upper": ci_high}
-            )
-        else:
-            predictions = pd.DataFrame.from_dict({"yhat": raw_predictions})
+        if not return_conf_int:
+            return pd.DataFrame.from_dict({"yhat": raw_predictions})
 
-        return predictions
+        ci_low, ci_high = list(zip(*raw_predictions[1]))
+        return pd.DataFrame.from_dict(
+            {
+                "yhat": raw_predictions[0],
+                "yhat_lower": ci_low,
+                "yhat_upper": ci_high,
+            }
+        )

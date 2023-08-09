@@ -25,11 +25,11 @@ def main():
     y_pred = regressor.predict(X_test)
     f1 = f1_score(y_test, y_pred, average="micro")
     run_id = mlflow.last_active_run().info.run_id
-    print("Logged data and model in run {}".format(run_id))
+    print(f"Logged data and model in run {run_id}")
 
     # show logged data
     for key, data in fetch_logged_data(run_id).items():
-        print("\n---------- logged {} ----------".format(key))
+        print(f"\n---------- logged {key} ----------")
         pprint(data)
 
 

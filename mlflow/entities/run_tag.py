@@ -10,10 +10,7 @@ class RunTag(_MLflowObject):
         self._value = value
 
     def __eq__(self, other):
-        if type(other) is type(self):
-            # TODO deep equality here?
-            return self.__dict__ == other.__dict__
-        return False
+        return self.__dict__ == other.__dict__ if type(other) is type(self) else False
 
     @property
     def key(self):

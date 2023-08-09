@@ -146,10 +146,7 @@ def push_image_to_ecr(image=DEFAULT_IMAGE_NAME):
         f"{account}.dkr.ecr.{region}.amazonaws.com"
     )
 
-    os_command_separator = ";\n"
-    if platform.system() == "Windows":
-        os_command_separator = " && "
-
+    os_command_separator = " && " if platform.system() == "Windows" else ";\n"
     docker_tag_cmd = f"docker tag {image} {fullname}"
     docker_push_cmd = f"docker push {fullname}"
 
@@ -1168,8 +1165,7 @@ def target_help():
 def _get_default_image_url(region_name):
     import boto3
 
-    env_img = os.environ.get(IMAGE_NAME_ENV_VAR)
-    if env_img:
+    if env_img := os.environ.get(IMAGE_NAME_ENV_VAR):
         return env_img
 
     ecr_client = boto3.client("ecr", region_name=region_name)
@@ -1185,8 +1181,7 @@ def _get_account_id(**assume_role_credentials):
     sess = boto3.Session()
     sts_client = sess.client("sts", **assume_role_credentials)
     identity_info = sts_client.get_caller_identity()
-    account_id = identity_info["Account"]
-    return account_id
+    return identity_info["Account"]
 
 
 def _get_assumed_role_arn(**assume_role_credentials):
@@ -1310,16 +1305,16 @@ def _get_deployment_config(flavor_name, env_override=None):
         SERVING_ENVIRONMENT: SAGEMAKER_SERVING_ENVIRONMENT,
     }
     if env_override:
-        deployment_config.update(env_override)
+        deployment_config |= env_override
 
     if os.getenv("http_proxy") is not None:
-        deployment_config.update({"http_proxy": os.environ["http_proxy"]})
+        deployment_config["http_proxy"] = os.environ["http_proxy"]
 
     if os.getenv("https_proxy") is not None:
-        deployment_config.update({"https_proxy": os.environ["https_proxy"]})
+        deployment_config["https_proxy"] = os.environ["https_proxy"]
 
     if os.getenv("no_proxy") is not None:
-        deployment_config.update({"no_proxy": os.environ["no_proxy"]})
+        deployment_config["no_proxy"] = os.environ["no_proxy"]
 
     return deployment_config
 
@@ -1799,8 +1794,7 @@ def _create_sagemaker_model(
     if vpc_config is not None:
         create_model_args["VpcConfig"] = vpc_config
 
-    model_response = sage_client.create_model(**create_model_args)
-    return model_response
+    return sage_client.create_model(**create_model_args)
 
 
 def _delete_sagemaker_model(model_name, sage_client, s3_client):
@@ -1903,7 +1897,7 @@ def _does_model_exist(model_name, sage_client):
         if "Could not find model" in error.response["Error"]["Message"]:
             return False
     else:
-        return True if response else False
+        return bool(response)
 
 
 class SageMakerDeploymentClient(BaseDeploymentClient):
@@ -1976,7 +1970,7 @@ class SageMakerDeploymentClient(BaseDeploymentClient):
             )
 
     def _default_deployment_config(self, create_mode=True):
-        config = {
+        return {
             "assume_role_arn": self.assumed_role_arn,
             "execution_role_arn": None,
             "bucket": None,
@@ -1993,14 +1987,10 @@ class SageMakerDeploymentClient(BaseDeploymentClient):
             "env": None,
             "tags": None,
             "async_inference_config": {},
+            "mode": DEPLOYMENT_MODE_CREATE
+            if create_mode
+            else DEPLOYMENT_MODE_REPLACE,
         }
-
-        if create_mode:
-            config["mode"] = DEPLOYMENT_MODE_CREATE
-        else:
-            config["mode"] = DEPLOYMENT_MODE_REPLACE
-
-        return config
 
     def _apply_custom_config(self, config, custom_config):
         int_fields = {"instance_count", "timeout_seconds"}

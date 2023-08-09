@@ -180,7 +180,7 @@ class PredictStep(BaseStep):
         output_location = self.step_config["location"]
         output_populated = False
         if self.save_mode in ["default", "error", "errorifexists"]:
-            if output_format == "parquet" or output_format == "delta":
+            if output_format in ["parquet", "delta"]:
                 output_populated = os.path.exists(output_location)
             else:
                 try:
@@ -255,7 +255,7 @@ class PredictStep(BaseStep):
     def from_recipe_config(cls, recipe_config, recipe_root):
         step_config = {}
         if recipe_config.get("steps", {}).get("predict", {}) is not None:
-            step_config.update(recipe_config.get("steps", {}).get("predict", {}))
+            step_config |= recipe_config.get("steps", {}).get("predict", {})
         if recipe_config.get("steps", {}).get("predict", {}).get("output", {}) is not None:
             step_config.update(recipe_config.get("steps", {}).get("predict", {}).get("output", {}))
         step_config["register"] = recipe_config.get("steps", {}).get("register", {})

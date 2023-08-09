@@ -41,8 +41,7 @@ def _already_ran(entry_point_name, parameters, git_commit, experiment_id=None):
 
         if run.info.to_proto().status != RunStatus.FINISHED:
             eprint(
-                ("Run matched, but is not FINISHED, so skipping (run_id=%s, status=%s)")
-                % (run.info.run_id, run.info.status)
+                f"Run matched, but is not FINISHED, so skipping (run_id={run.info.run_id}, status={run.info.status})"
             )
             continue
 
@@ -68,10 +67,12 @@ def _get_or_run(entrypoint, parameters, git_commit, use_cache=True):
     existing_run = _already_ran(entrypoint, parameters, git_commit)
     if use_cache and existing_run:
         print(
-            "Found existing run for entrypoint={} and parameters={}".format(entrypoint, parameters)
+            f"Found existing run for entrypoint={entrypoint} and parameters={parameters}"
         )
         return existing_run
-    print("Launching new run for entrypoint={} and parameters={}".format(entrypoint, parameters))
+    print(
+        f"Launching new run for entrypoint={entrypoint} and parameters={parameters}"
+    )
     submitted_run = mlflow.run(".", entrypoint, parameters=parameters, env_manager="local")
     return MlflowClient().get_run(submitted_run.run_id)
 

@@ -75,20 +75,18 @@ class __MlflowFastaiCallback(Callback, metaclass=ExceptionSafeClass):
         # Extract function name when `opt_func` is partial function
         if isinstance(self.opt_func, partial):
             mlflow.log_param(
-                self.freeze_prefix + "opt_func",
+                f"{self.freeze_prefix}opt_func",
                 self.opt_func.keywords["opt"].__name__,
             )
         else:
-            mlflow.log_param(self.freeze_prefix + "opt_func", self.opt_func.__name__)
+            mlflow.log_param(f"{self.freeze_prefix}opt_func", self.opt_func.__name__)
 
         params_not_to_log = []
         for cb in self.cbs:
             if isinstance(cb, ParamScheduler):
                 params_not_to_log = list(cb.scheds.keys())
                 for param, f in cb.scheds.items():
-                    values = []
-                    for step in np.linspace(0, 1, num=100, endpoint=False):
-                        values.append(f(step))
+                    values = [f(step) for step in np.linspace(0, 1, num=100, endpoint=False)]
                     values = np.array(values)
 
                     # Log params main values from scheduling
@@ -114,13 +112,13 @@ class __MlflowFastaiCallback(Callback, metaclass=ExceptionSafeClass):
                 mlflow.log_param(self.freeze_prefix + param, [h[param] for h in self.opt.hypers])
 
         if hasattr(self.opt, "true_wd"):
-            mlflow.log_param(self.freeze_prefix + "true_wd", self.opt.true_wd)
+            mlflow.log_param(f"{self.freeze_prefix}true_wd", self.opt.true_wd)
 
         if hasattr(self.opt, "bn_wd"):
-            mlflow.log_param(self.freeze_prefix + "bn_wd", self.opt.bn_wd)
+            mlflow.log_param(f"{self.freeze_prefix}bn_wd", self.opt.bn_wd)
 
         if hasattr(self.opt, "train_bn"):
-            mlflow.log_param(self.freeze_prefix + "train_bn", self.opt.train_bn)
+            mlflow.log_param(f"{self.freeze_prefix}train_bn", self.opt.train_bn)
 
     def after_fit(self):
         from fastai.callback.all import SaveModelCallback

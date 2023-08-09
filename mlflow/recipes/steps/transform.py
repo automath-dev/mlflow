@@ -23,7 +23,7 @@ _USER_DEFINED_TRANSFORM_STEP_MODULE = "steps.transform"
 
 def _generate_feature_names(num_features):
     max_length = len(str(num_features))
-    return ["f_" + str(i).zfill(max_length) for i in range(num_features)]
+    return [f"f_{str(i).zfill(max_length)}" for i in range(num_features)]
 
 
 def _get_output_feature_names(transformer, num_features, input_features):
@@ -225,7 +225,7 @@ class TransformStep(BaseStep):
     def from_recipe_config(cls, recipe_config, recipe_root):
         step_config = {}
         if recipe_config.get("steps", {}).get("transform", {}) is not None:
-            step_config.update(recipe_config.get("steps", {}).get("transform", {}))
+            step_config |= recipe_config.get("steps", {}).get("transform", {})
         step_config["target_col"] = recipe_config.get("target_col")
         step_config["recipe"] = recipe_config.get("recipe", "regression/v1")
         if "positive_class" in recipe_config:

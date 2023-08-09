@@ -61,12 +61,10 @@ def _resolve_experiment_id(experiment_name=None, experiment_id=None):
 
     if experiment_name:
         client = tracking.MlflowClient()
-        exp = client.get_experiment_by_name(experiment_name)
-        if exp:
+        if exp := client.get_experiment_by_name(experiment_name):
             return exp.experiment_id
-        else:
-            _logger.info("'%s' does not exist. Creating a new experiment", experiment_name)
-            return client.create_experiment(experiment_name)
+        _logger.info("'%s' does not exist. Creating a new experiment", experiment_name)
+        return client.create_experiment(experiment_name)
 
     return _get_experiment_id()
 
@@ -100,8 +98,7 @@ def _run(
     backend_config[PROJECT_DOCKER_AUTH] = docker_auth
     # TODO: remove this check once kubernetes execution has been refactored
     if backend_name not in {"databricks", "kubernetes"}:
-        backend = loader.load_backend(backend_name)
-        if backend:
+        if backend := loader.load_backend(backend_name):
             submitted_run = backend.run(
                 uri,
                 entry_point,
@@ -409,13 +406,12 @@ def _parse_kubernetes_config(backend_config):
             "'kube-job-template-path' attribute must be specified in backend_config."
         )
     kube_job_template = backend_config["kube-job-template-path"]
-    if os.path.exists(kube_job_template):
-        with open(kube_job_template) as job_template:
-            yaml_obj = yaml.safe_load(job_template.read())
-        kube_job_template = yaml_obj
-        kube_config["kube-job-template"] = kube_job_template
-    else:
+    if not os.path.exists(kube_job_template):
         raise ExecutionException(f"Could not find 'kube-job-template-path': {kube_job_template}")
+    with open(kube_job_template) as job_template:
+        yaml_obj = yaml.safe_load(job_template.read())
+    kube_job_template = yaml_obj
+    kube_config["kube-job-template"] = kube_job_template
     if "kube-context" not in backend_config.keys():
         _logger.debug(
             "Could not find kube-context in backend_config."

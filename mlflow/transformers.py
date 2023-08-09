@@ -114,17 +114,14 @@ def _model_packages(model) -> List[str]:
     :return: A list of strings representing the underlying engine-specific dependencies
     """
     engine = _get_engine_type(model)
-    if engine == "torch":
-        packages = ["torch", "torchvision"]
-        try:
-            import accelerate
-
-            packages.append("accelerate")
-        except ImportError:
-            pass
-        return packages
-    else:
+    if engine != "torch":
         return [engine]
+    packages = ["torch", "torchvision"]
+    with contextlib.suppress(ImportError):
+        import accelerate
+
+        packages.append("accelerate")
+    return packages
 
 
 @experimental
@@ -168,8 +165,11 @@ def _validate_transformers_model_dict(transformers_model):
     are provided, raise to indicate which invalid keys were submitted.
     """
     if isinstance(transformers_model, dict):
-        invalid_keys = [key for key in transformers_model.keys() if key not in _SUPPORTED_SAVE_KEYS]
-        if invalid_keys:
+        if invalid_keys := [
+            key
+            for key in transformers_model.keys()
+            if key not in _SUPPORTED_SAVE_KEYS
+        ]:
             raise MlflowException(
                 "Invalid dictionary submitted for 'transformers_model'. The "
                 f"key(s) {invalid_keys} are not permitted. Must be one of: "
@@ -809,7 +809,7 @@ def load_model(model_uri: str, dst_path: str = None, return_type="pipeline", dev
             error_code=INVALID_PARAMETER_VALUE,
         )
 
-    model_uri = str(model_uri)
+    model_uri = model_uri
 
     local_model_path = _download_artifact_from_uri(artifact_uri=model_uri, output_path=dst_path)
 
@@ -832,19 +832,15 @@ def load_model(model_uri: str, dst_path: str = None, return_type="pipeline", dev
 def is_gpu_available():
     # try pytorch and if it fails, try tf
     is_gpu = None
-    try:
+    with contextlib.suppress(ImportError):
         import torch
 
         is_gpu = torch.cuda.is_available()
-    except ImportError:
-        pass
     if is_gpu is None:
-        try:
+        with contextlib.suppress(ImportError):
             import tensorflow as tf
 
             is_gpu = tf.test.is_gpu_available()
-        except ImportError:
-            pass
     if is_gpu is None:
         is_gpu = False
     return is_gpu
@@ -909,10 +905,11 @@ def _load_model(path: str, flavor_config, return_type: str, device=None, **kwarg
         accelerate_model_conf["device"] = device
 
     if _TORCH_DTYPE_KEY in flavor_config or _TORCH_DTYPE_KEY in kwargs:
-        if _TORCH_DTYPE_KEY in kwargs:
-            dtype_val = kwargs[_TORCH_DTYPE_KEY]
-        else:
-            dtype_val = _deserialize_torch_dtype_if_exists(flavor_config)
+        dtype_val = (
+            kwargs[_TORCH_DTYPE_KEY]
+            if _TORCH_DTYPE_KEY in kwargs
+            else _deserialize_torch_dtype_if_exists(flavor_config)
+        )
         conf[_TORCH_DTYPE_KEY] = dtype_val
         accelerate_model_conf[_TORCH_DTYPE_KEY] = dtype_val
 
@@ -945,11 +942,11 @@ def _load_model(path: str, flavor_config, return_type: str, device=None, **kwarg
         if key in flavor_config:
             conf[key] = flavor_config[key]
 
-    if return_type == "pipeline":
+    if return_type == "components":
+        return conf
+    elif return_type == "pipeline":
         conf.update(**kwargs)
         return transformers.pipeline(**conf)
-    elif return_type == "components":
-        return conf
 
 
 @lru_cache
@@ -1065,10 +1062,10 @@ def _record_pipeline_components(pipeline) -> Dict[str, Any]:
     ]:
         component = getattr(pipeline, attr, None)
         if component is not None:
-            components_conf.update({key: _get_instance_type(component)})
+            components_conf[key] = _get_instance_type(component)
             components.append(attr)
     if components:
-        components_conf.update({_COMPONENTS_BINARY_KEY: components})
+        components_conf[_COMPONENTS_BINARY_KEY] = components
     return components_conf
 
 
@@ -1296,9 +1293,7 @@ def _should_add_pyfunc_to_model(pipeline) -> bool:
         if hasattr(transformers, model_type):
             if isinstance(pipeline.model, getattr(transformers, model_type)):
                 return False
-    if type(pipeline).__name__ in exclusion_pipeline_types:
-        return False
-    return True
+    return type(pipeline).__name__ not in exclusion_pipeline_types
 
 
 def _format_input_example_for_special_cases(input_example, pipeline):
@@ -1340,8 +1335,7 @@ def _get_default_pipeline_signature(
                 "Attempted to generate a signature for the saved model or pipeline "
                 f"but encountered an error: {e}"
             )
-    else:
-        if isinstance(
+    elif isinstance(
             pipeline,
             (
                 transformers.TokenClassificationPipeline,
@@ -1352,77 +1346,77 @@ def _get_default_pipeline_signature(
                 transformers.Text2TextGenerationPipeline,
             ),
         ):
-            return ModelSignature(
-                inputs=Schema([ColSpec("string")]), outputs=Schema([ColSpec("string")])
-            )
-        elif isinstance(pipeline, transformers.TextClassificationPipeline):
-            return ModelSignature(
-                inputs=Schema([ColSpec("string")]),
-                outputs=Schema([ColSpec("string", name="label"), ColSpec("double", name="score")]),
-            )
-        elif isinstance(pipeline, transformers.ZeroShotClassificationPipeline):
-            return ModelSignature(
-                inputs=Schema(
-                    [
-                        ColSpec("string", name="sequences"),
-                        ColSpec("string", name="candidate_labels"),
-                        ColSpec("string", name="hypothesis_template"),
-                    ]
-                ),
-                outputs=Schema(
-                    [
-                        ColSpec("string", name="sequence"),
-                        ColSpec("string", name="labels"),
-                        ColSpec("double", name="scores"),
-                    ]
-                ),
-            )
-        elif isinstance(pipeline, transformers.AutomaticSpeechRecognitionPipeline):
-            return ModelSignature(
-                inputs=Schema([ColSpec("binary")]),
-                outputs=Schema([ColSpec("string")]),
-            )
-        elif isinstance(pipeline, transformers.AudioClassificationPipeline):
-            return ModelSignature(
-                inputs=Schema([ColSpec("binary")]),
-                outputs=Schema([ColSpec("double", name="score"), ColSpec("string", name="label")]),
-            )
-        elif isinstance(
-            pipeline,
-            (
-                transformers.TableQuestionAnsweringPipeline,
-                transformers.QuestionAnsweringPipeline,
+        return ModelSignature(
+            inputs=Schema([ColSpec("string")]), outputs=Schema([ColSpec("string")])
+        )
+    elif isinstance(pipeline, transformers.TextClassificationPipeline):
+        return ModelSignature(
+            inputs=Schema([ColSpec("string")]),
+            outputs=Schema([ColSpec("string", name="label"), ColSpec("double", name="score")]),
+        )
+    elif isinstance(pipeline, transformers.ZeroShotClassificationPipeline):
+        return ModelSignature(
+            inputs=Schema(
+                [
+                    ColSpec("string", name="sequences"),
+                    ColSpec("string", name="candidate_labels"),
+                    ColSpec("string", name="hypothesis_template"),
+                ]
             ),
-        ):
-            column_1 = None
-            column_2 = None
-            if isinstance(pipeline, transformers.TableQuestionAnsweringPipeline):
-                column_1 = "query"
-                column_2 = "table"
-            elif isinstance(pipeline, transformers.QuestionAnsweringPipeline):
-                column_1 = "question"
-                column_2 = "context"
-            return ModelSignature(
-                inputs=Schema(
-                    [
-                        ColSpec("string", name=column_1),
-                        ColSpec("string", name=column_2),
-                    ]
-                ),
-                outputs=Schema([ColSpec("string")]),
-            )
-        elif isinstance(pipeline, transformers.FeatureExtractionPipeline):
-            return ModelSignature(
-                inputs=Schema([ColSpec("string")]),
-                outputs=Schema([TensorSpec(np.dtype("float64"), [-1], "double")]),
-            )
-        else:
-            _logger.warning(
-                "An unsupported Pipeline type was supplied for signature inference. "
-                "Either provide an `input_example` or generate a signature manually "
-                "via `infer_signature` if you would like to have a signature recorded "
-                "in the MLmodel file."
-            )
+            outputs=Schema(
+                [
+                    ColSpec("string", name="sequence"),
+                    ColSpec("string", name="labels"),
+                    ColSpec("double", name="scores"),
+                ]
+            ),
+        )
+    elif isinstance(pipeline, transformers.AutomaticSpeechRecognitionPipeline):
+        return ModelSignature(
+            inputs=Schema([ColSpec("binary")]),
+            outputs=Schema([ColSpec("string")]),
+        )
+    elif isinstance(pipeline, transformers.AudioClassificationPipeline):
+        return ModelSignature(
+            inputs=Schema([ColSpec("binary")]),
+            outputs=Schema([ColSpec("double", name="score"), ColSpec("string", name="label")]),
+        )
+    elif isinstance(
+        pipeline,
+        (
+            transformers.TableQuestionAnsweringPipeline,
+            transformers.QuestionAnsweringPipeline,
+        ),
+    ):
+        column_1 = None
+        column_2 = None
+        if isinstance(pipeline, transformers.TableQuestionAnsweringPipeline):
+            column_1 = "query"
+            column_2 = "table"
+        elif isinstance(pipeline, transformers.QuestionAnsweringPipeline):
+            column_1 = "question"
+            column_2 = "context"
+        return ModelSignature(
+            inputs=Schema(
+                [
+                    ColSpec("string", name=column_1),
+                    ColSpec("string", name=column_2),
+                ]
+            ),
+            outputs=Schema([ColSpec("string")]),
+        )
+    elif isinstance(pipeline, transformers.FeatureExtractionPipeline):
+        return ModelSignature(
+            inputs=Schema([ColSpec("string")]),
+            outputs=Schema([TensorSpec(np.dtype("float64"), [-1], "double")]),
+        )
+    else:
+        _logger.warning(
+            "An unsupported Pipeline type was supplied for signature inference. "
+            "Either provide an `input_example` or generate a signature manually "
+            "via `infer_signature` if you would like to have a signature recorded "
+            "in the MLmodel file."
+        )
 
 
 class _TransformersModel(NamedTuple):
@@ -1493,12 +1487,11 @@ class _TransformersModel(NamedTuple):
             (image_processor, "image_processor", ImageProcessingMixin),
             (processor, "processor", ProcessorMixin),
         ]
-        invalid_types = []
-
-        for arg, name, types in validation:
-            if arg and not isinstance(arg, types):
-                invalid_types.append(cls._build_exception_msg(arg, name, types))
-        if invalid_types:
+        if invalid_types := [
+            cls._build_exception_msg(arg, name, types)
+            for arg, name, types in validation
+            if arg and not isinstance(arg, types)
+        ]:
             raise MlflowException("\n".join(invalid_types), error_code=BAD_REQUEST)
 
     @classmethod
@@ -1583,31 +1576,32 @@ class _TransformersWrapper:
     def _convert_pandas_to_dict(self, data):
         import transformers
 
-        if not isinstance(self.pipeline, transformers.ZeroShotClassificationPipeline):
+        if not isinstance(
+            self.pipeline, transformers.ZeroShotClassificationPipeline
+        ):
             return data.to_dict(orient="records")
-        else:
-            # NB: The ZeroShotClassificationPipeline requires an input in the form of
-            # Dict[str, Union[str, List[str]]] and will throw if an additional nested
-            # List is present within the List value (which is what the duplicated values
-            # within the orient="list" conversion in Pandas will do. This parser will
-            # deduplicate label lists to a single list.
-            unpacked = data.to_dict(orient="list")
-            parsed = {}
-            for key, value in unpacked.items():
-                if isinstance(value, list):
-                    contents = []
-                    for item in value:
-                        # Deduplication logic
-                        if item not in contents:
-                            contents.append(item)
-                    # Collapse nested lists to return the correct data structure for the
-                    # ZeroShotClassificationPipeline input structure
-                    parsed[key] = (
-                        contents
-                        if all(isinstance(item, str) for item in contents) and len(contents) > 1
-                        else contents[0]
-                    )
-            return parsed
+        # NB: The ZeroShotClassificationPipeline requires an input in the form of
+        # Dict[str, Union[str, List[str]]] and will throw if an additional nested
+        # List is present within the List value (which is what the duplicated values
+        # within the orient="list" conversion in Pandas will do. This parser will
+        # deduplicate label lists to a single list.
+        unpacked = data.to_dict(orient="list")
+        parsed = {}
+        for key, value in unpacked.items():
+            if isinstance(value, list):
+                contents = []
+                for item in value:
+                    # Deduplication logic
+                    if item not in contents:
+                        contents.append(item)
+                # Collapse nested lists to return the correct data structure for the
+                # ZeroShotClassificationPipeline input structure
+                parsed[key] = (
+                    contents
+                    if all(isinstance(item, str) for item in contents) and len(contents) > 1
+                    else contents[0]
+                )
+        return parsed
 
     def _override_inference_config(self, params):
         if params:
@@ -1697,9 +1691,7 @@ class _TransformersWrapper:
                 for x in input_data
             )
 
-        predictions = self._predict(input_data)
-
-        return predictions
+        return self._predict(input_data)
 
     def _predict(self, data):
         import transformers
@@ -2064,10 +2056,10 @@ class _TransformersWrapper:
 
         flattened_data = []
         for entry in data:
-            for label, score in zip(entry["labels"], entry["scores"]):
-                flattened_data.append(
-                    {"sequence": entry["sequence"], "labels": label, "scores": score}
-                )
+            flattened_data.extend(
+                {"sequence": entry["sequence"], "labels": label, "scores": score}
+                for label, score in zip(entry["labels"], entry["scores"])
+            )
         return pd.DataFrame(flattened_data)
 
     def _strip_input_from_response_in_instruction_pipelines(
@@ -2150,12 +2142,11 @@ class _TransformersWrapper:
         if isinstance(output, str):
             return output.strip()
         elif isinstance(output, list):
-            if all(isinstance(elem, str) for elem in output):
-                cleaned = [text.strip() for text in output]
-                # If the list has only a single string, return as string.
-                return cleaned if len(cleaned) > 1 else cleaned[0]
-            else:
+            if not all(isinstance(elem, str) for elem in output):
                 return [self._sanitize_output(coll, input_data) for coll in output]
+            cleaned = [text.strip() for text in output]
+            # If the list has only a single string, return as string.
+            return cleaned if len(cleaned) > 1 else cleaned[0]
         elif isinstance(output, dict) and all(
             isinstance(key, str) and isinstance(value, str) for key, value in output.items()
         ):
@@ -2170,10 +2161,7 @@ class _TransformersWrapper:
         Scalar values are not supported for processing in batch logic as they cannot be coerced
         to DataFrame representations.
         """
-        if isinstance(output_data, str):
-            return [output_data]
-        else:
-            return output_data
+        return [output_data] if isinstance(output_data, str) else output_data
 
     def _parse_lists_of_dict_to_list_of_str(self, output_data, target_dict_key) -> List[str]:
         """
@@ -2254,17 +2242,13 @@ class _TransformersWrapper:
                 [{"entity": "PRON", "score": 0.95}, {"entity": "NOUN", "score": 0.998}]]
         Output: ["PRON,NOUN", "PRON,NOUN"]
         """
-        # NB: We're collapsing the results here to a comma separated string for each inference
-        # input string. This is to simplify having to otherwise make extensive changes to
-        # ColSpec in order to support schema enforcement of List[List[str]]
         if isinstance(output_data[0], list):
             return [self._parse_tokenizer_output(coll, target_set) for coll in output_data]
-        else:
-            # NB: Since there are no attributes accessible from the pipeline object that determine
-            # what the characteristics of the return structure names are within the dictionaries,
-            # Determine which one is present in the output to extract the correct entries.
-            target = target_set.intersection(output_data[0].keys()).pop()
-            return ",".join([coll[target] for coll in output_data])
+        # NB: Since there are no attributes accessible from the pipeline object that determine
+        # what the characteristics of the return structure names are within the dictionaries,
+        # Determine which one is present in the output to extract the correct entries.
+        target = target_set.intersection(output_data[0].keys()).pop()
+        return ",".join([coll[target] for coll in output_data])
 
     @staticmethod
     def _parse_list_of_multiple_dicts(output_data, target_dict_key):
@@ -2302,7 +2286,7 @@ class _TransformersWrapper:
             return [self._parse_question_answer_input(entry) for entry in data]
         elif isinstance(data, dict):
             expected_keys = {"question", "context"}
-            if not expected_keys.intersection(set(data.keys())) == expected_keys:
+            if expected_keys.intersection(set(data.keys())) != expected_keys:
                 raise MlflowException(
                     f"Invalid keys were submitted. Keys must be exclusively {expected_keys}"
                 )
@@ -2427,18 +2411,18 @@ class _TransformersWrapper:
             output = {}
             for key, value in data.items():
                 if key == key_to_unpack:
-                    if isinstance(value, np.ndarray):
-                        output[key] = ast.literal_eval(value.item())
-                    else:
-                        output[key] = ast.literal_eval(value)
+                    output[key] = (
+                        ast.literal_eval(value.item())
+                        if isinstance(value, np.ndarray)
+                        else ast.literal_eval(value)
+                    )
+                elif isinstance(value, np.ndarray):
+                    # This cast to np.ndarray occurs when more than one question is asked.
+                    output[key] = value.item()
                 else:
-                    if isinstance(value, np.ndarray):
-                        # This cast to np.ndarray occurs when more than one question is asked.
-                        output[key] = value.item()
-                    else:
-                        # Otherwise, the entry does not need casting from a np.ndarray type to
-                        # list as it is already a scalar string.
-                        output[key] = value
+                    # Otherwise, the entry does not need casting from a np.ndarray type to
+                    # list as it is already a scalar string.
+                    output[key] = value
             return output
         else:
             return {
@@ -2532,11 +2516,7 @@ class _TransformersWrapper:
             elif isinstance(encoded, bytes):
                 # For input types 'dataframe_split' and 'dataframe_records', the encoding
                 # conversion to bytes is handled.
-                if not is_base64(encoded):
-                    return encoded
-                else:
-                    # For input type 'inputs', explicit decoding of the b64encoded audio is needed.
-                    return base64.b64decode(encoded)
+                return encoded if not is_base64(encoded) else base64.b64decode(encoded)
             else:
                 try:
                     return base64.b64decode(encoded)

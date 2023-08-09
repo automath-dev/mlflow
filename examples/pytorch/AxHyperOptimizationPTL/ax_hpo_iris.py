@@ -14,8 +14,7 @@ def train_evaluate(params, max_epochs):
     mlflow.pytorch.autolog()
     trainer.fit(model, dm)
     trainer.test(datamodule=dm)
-    test_accuracy = trainer.callback_metrics.get("test_acc")
-    return test_accuracy
+    return trainer.callback_metrics.get("test_acc")
 
 
 def model_training_hyperparameter_tuning(max_epochs, total_trials, params):
@@ -42,7 +41,7 @@ def model_training_hyperparameter_tuning(max_epochs, total_trials, params):
         )
 
         for i in range(total_trials):
-            with mlflow.start_run(nested=True, run_name="Trial " + str(i)) as child_run:
+            with mlflow.start_run(nested=True, run_name=f"Trial {str(i)}") as child_run:
                 parameters, trial_index = ax_client.get_next_trial()
                 test_accuracy = train_evaluate(params=parameters, max_epochs=max_epochs)
 
@@ -51,7 +50,7 @@ def model_training_hyperparameter_tuning(max_epochs, total_trials, params):
 
         best_parameters, metrics = ax_client.get_best_parameters()
         for param_name, value in best_parameters.items():
-            mlflow.log_param("optimum_" + param_name, value)
+            mlflow.log_param(f"optimum_{param_name}", value)
 
 
 if __name__ == "__main__":

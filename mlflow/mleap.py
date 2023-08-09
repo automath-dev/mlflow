@@ -267,7 +267,7 @@ def add_to_model(mlflow_model, path, spark_model, sample_input):
         # parse the model data path, even though the result is not a correct URI.
         # None of "file:", "file:/", or "file:///", which would be canonically correct,
         # work properly
-        model_path = "file://" + str(pathlib.Path(mleap_datapath_full).as_posix())
+        model_path = f"file://{str(pathlib.Path(mleap_datapath_full).as_posix())}"
     else:
         model_path = path_to_local_file_uri(mleap_datapath_full)
 

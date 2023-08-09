@@ -287,9 +287,7 @@ def _mlflowdbfs_path(run_id, artifact_path):
             f"artifact_path should be relative, found: {artifact_path}",
             INVALID_PARAMETER_VALUE,
         )
-    return "{}:///artifacts?run_id={}&path=/{}".format(
-        _MLFLOWDBFS_SCHEME, run_id, posixpath.join(artifact_path, _SPARK_MODEL_PATH_SUB)
-    )
+    return f"{_MLFLOWDBFS_SCHEME}:///artifacts?run_id={run_id}&path=/{posixpath.join(artifact_path, _SPARK_MODEL_PATH_SUB)}"
 
 
 def _maybe_save_model(spark_model, model_dir):

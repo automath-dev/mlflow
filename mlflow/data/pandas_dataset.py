@@ -123,12 +123,11 @@ class PandasDataset(Dataset, PyFuncConvertibleDatasetMixin):
         Converts the dataset to a collection of pyfunc inputs and outputs for model
         evaluation. Required for use with mlflow.evaluate().
         """
-        if self._targets:
-            inputs = self._df.drop(columns=[self._targets])
-            outputs = self._df[self._targets]
-            return PyFuncInputsOutputs(inputs, outputs)
-        else:
+        if not self._targets:
             return PyFuncInputsOutputs(self._df)
+        inputs = self._df.drop(columns=[self._targets])
+        outputs = self._df[self._targets]
+        return PyFuncInputsOutputs(inputs, outputs)
 
     def to_evaluation_dataset(self, path=None, feature_names=None) -> EvaluationDataset:
         """
@@ -174,14 +173,13 @@ def from_pandas(
     from mlflow.data.dataset_source_registry import resolve_dataset_source
     from mlflow.tracking.context import registry
 
-    if source is not None:
-        if isinstance(source, DatasetSource):
-            resolved_source = source
-        else:
-            resolved_source = resolve_dataset_source(
-                source,
-            )
-    else:
+    if source is None:
         context_tags = registry.resolve_tags()
         resolved_source = CodeDatasetSource(tags=context_tags)
+    elif isinstance(source, DatasetSource):
+        resolved_source = source
+    else:
+        resolved_source = resolve_dataset_source(
+            source,
+        )
     return PandasDataset(df=df, source=resolved_source, targets=targets, name=name, digest=digest)

@@ -217,9 +217,8 @@ def parse_csv_input(csv_input, schema: Schema = None):
     try:
         if schema is None:
             return pd.read_csv(csv_input)
-        else:
-            dtypes = dict(zip(schema.input_names(), schema.pandas_types()))
-            return pd.read_csv(csv_input, dtype=dtypes)
+        dtypes = dict(zip(schema.input_names(), schema.pandas_types()))
+        return pd.read_csv(csv_input, dtype=dtypes)
     except Exception:
         _handle_serving_error(
             error_message=(
@@ -283,8 +282,9 @@ def invocations(data, content_type, model, input_schema):
             mimetype="text/plain",
         )
 
-    unexpected_content_parameters = set(parameter_values.keys()).difference({"charset"})
-    if unexpected_content_parameters:
+    if unexpected_content_parameters := set(
+        parameter_values.keys()
+    ).difference({"charset"}):
         return InvocationsResponse(
             response=(
                 f"Unrecognized content type parameters: "

@@ -174,14 +174,12 @@ class TrainStep(BaseStep):
         builtin_metrics = _get_builtin_metrics(self.extended_task)
         custom_metrics = _get_custom_metrics(self.step_config, self.extended_task)
         self.user_defined_custom_metrics = {metric.name: metric for metric in custom_metrics}
-        self.evaluation_metrics = {metric.name: metric for metric in builtin_metrics}
-        self.evaluation_metrics.update(self.user_defined_custom_metrics)
+        self.evaluation_metrics = {
+            metric.name: metric for metric in builtin_metrics
+        } | self.user_defined_custom_metrics
         self.evaluation_metrics_greater_is_better = {
             metric.name: metric.greater_is_better for metric in builtin_metrics
-        }
-        self.evaluation_metrics_greater_is_better.update(
-            {metric.name: metric.greater_is_better for metric in custom_metrics}
-        )
+        } | {metric.name: metric.greater_is_better for metric in custom_metrics}
         if self.primary_metric is not None and self.primary_metric not in self.evaluation_metrics:
             raise MlflowException(
                 f"The primary metric '{self.primary_metric}' is a custom metric, but its"
@@ -1046,7 +1044,7 @@ class TrainStep(BaseStep):
     def from_recipe_config(cls, recipe_config, recipe_root):
         step_config = {}
         if recipe_config.get("steps", {}).get("train", {}) is not None:
-            step_config.update(recipe_config.get("steps", {}).get("train", {}))
+            step_config |= recipe_config.get("steps", {}).get("train", {})
         if recipe_config.get("custom_metrics") is not None:
             step_config["custom_metrics"] = recipe_config["custom_metrics"]
         if recipe_config.get("primary_metric") is not None:
@@ -1178,7 +1176,7 @@ class TrainStep(BaseStep):
                     else:
                         manual_log_params[param_name] = param_value
 
-                if len(manual_log_params) > 0:
+                if manual_log_params:
                     mlflow.log_params(manual_log_params)
 
                 # return +/- metric
@@ -1264,21 +1262,18 @@ class TrainStep(BaseStep):
             mlflow.log_params(estimator.get_params())
             estimator_tags = {
                 "estimator_name": estimator.__class__.__name__,
-                "estimator_class": (
-                    estimator.__class__.__module__ + "." + estimator.__class__.__name__
-                ),
+                "estimator_class": f"{estimator.__class__.__module__}.{estimator.__class__.__name__}",
             }
             mlflow.set_tags(estimator_tags)
         estimator_schema = infer_signature(
             X_train_sampled, estimator.predict(X_train_sampled.copy())
         )
-        logged_estimator = mlflow.sklearn.log_model(
+        return mlflow.sklearn.log_model(
             estimator,
             f"{self.name}/estimator",
             signature=estimator_schema,
             code_paths=self.code_paths,
         )
-        return logged_estimator
 
     def _write_best_parameters_outputs(
         self,
@@ -1316,12 +1311,9 @@ class TrainStep(BaseStep):
                 processed_data[key] = float(value)
             elif isinstance(value, np.integer):
                 processed_data[key] = int(value)
-            elif isinstance(value, dict):
-                processed_data[key] = str(value)
             else:
                 processed_data[key] = str(value)
-
-        if len(processed_data) > 0:
+        if processed_data:
             yaml.safe_dump(processed_data, file, **kwargs)
 
     def _rebalance_classes(self, train_df):

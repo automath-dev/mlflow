@@ -122,7 +122,8 @@ def _gen_estimators_to_patch():
         for estimator in estimators_to_patch
         if not any(
             estimator.__module__.startswith(excluded_module_name)
-            or (estimator.__module__ + "." + estimator.__name__) in excluded_class_names
+            or f"{estimator.__module__}.{estimator.__name__}"
+            in excluded_class_names
             for excluded_module_name in excluded_module_names
         )
     ]
@@ -723,13 +724,7 @@ class _AutologgingMetricsManager:
     @staticmethod
     def gen_name_with_index(name, index):
         assert index >= 0
-        if index == 0:
-            return name
-        else:
-            # Use '-' as the separator between name and index,
-            # The '-' is not valid character in python var name
-            # so it can prevent name conflicts after appending index.
-            return f"{name}-{index + 1}"
+        return name if index == 0 else f"{name}-{index + 1}"
 
     def register_prediction_input_dataset(self, model, eval_dataset):
         """
@@ -752,13 +747,14 @@ class _AutologgingMetricsManager:
         run_id = self.get_run_id_for_model(model)
         registered_dataset_list = self._eval_dataset_info_map[run_id][eval_dataset_name]
 
-        for i, id_i in enumerate(registered_dataset_list):
-            if eval_dataset_id == id_i:
-                index = i
-                break
-        else:
-            index = len(registered_dataset_list)
-
+        index = next(
+            (
+                i
+                for i, id_i in enumerate(registered_dataset_list)
+                if eval_dataset_id == id_i
+            ),
+            len(registered_dataset_list),
+        )
         if index == len(registered_dataset_list):
             # register new eval dataset
             registered_dataset_list.append(eval_dataset_id)
@@ -804,7 +800,7 @@ class _AutologgingMetricsManager:
             if arg is None or np.isscalar(arg):
                 if isinstance(arg, str) and len(arg) > 32:
                     # truncate too long string
-                    return repr(arg[:32] + "...")
+                    return repr(f"{arg[:32]}...")
                 return repr(arg)
             else:
                 # dataset arguments or other non-scalar type argument
@@ -965,9 +961,6 @@ def _patch_estimator_method_if_available(
             manage_run=manage_run,
             extra_tags=extra_tags,
         )
-    else:
-        # unsupported method type. skip patching
-        pass
 
 
 @autologging_integration(FLAVOR_NAME)
@@ -1288,7 +1281,7 @@ def _autolog(
     serialization_format=SERIALIZATION_FORMAT_CLOUDPICKLE,
     pos_label=None,
     extra_tags=None,
-):  # pylint: disable=unused-argument
+):    # pylint: disable=unused-argument
     """
     Internal autologging function for scikit-learn models.
     :param flavor_name: A string value. Enable a ``mlflow.sklearn`` autologging routine
@@ -1692,35 +1685,35 @@ def _autolog(
             return original(self, *args, **kwargs)
 
     def patched_metric_api(original, *args, **kwargs):
-        if _AUTOLOGGING_METRICS_MANAGER.should_log_post_training_metrics():
-            # one metric api may call another metric api,
-            # to avoid this, call disable_log_post_training_metrics to avoid nested patch
-            with _AUTOLOGGING_METRICS_MANAGER.disable_log_post_training_metrics():
-                metric = original(*args, **kwargs)
-
-            if _AUTOLOGGING_METRICS_MANAGER.is_metric_value_loggable(metric):
-                metric_name = original.__name__
-                call_command = _AUTOLOGGING_METRICS_MANAGER.gen_metric_call_command(
-                    None, original, *args, **kwargs
-                )
-
-                (
-                    run_id,
-                    dataset_name,
-                ) = _AUTOLOGGING_METRICS_MANAGER.get_run_id_and_dataset_name_for_metric_api_call(
-                    args, kwargs
-                )
-                if run_id and dataset_name:
-                    metric_key = _AUTOLOGGING_METRICS_MANAGER.register_metric_api_call(
-                        run_id, metric_name, dataset_name, call_command
-                    )
-                    _AUTOLOGGING_METRICS_MANAGER.log_post_training_metric(
-                        run_id, metric_key, metric
-                    )
-
-            return metric
-        else:
+        if not _AUTOLOGGING_METRICS_MANAGER.should_log_post_training_metrics():
             return original(*args, **kwargs)
+
+        # one metric api may call another metric api,
+        # to avoid this, call disable_log_post_training_metrics to avoid nested patch
+        with _AUTOLOGGING_METRICS_MANAGER.disable_log_post_training_metrics():
+            metric = original(*args, **kwargs)
+
+        if _AUTOLOGGING_METRICS_MANAGER.is_metric_value_loggable(metric):
+            metric_name = original.__name__
+            call_command = _AUTOLOGGING_METRICS_MANAGER.gen_metric_call_command(
+                None, original, *args, **kwargs
+            )
+
+            (
+                run_id,
+                dataset_name,
+            ) = _AUTOLOGGING_METRICS_MANAGER.get_run_id_and_dataset_name_for_metric_api_call(
+                args, kwargs
+            )
+            if run_id and dataset_name:
+                metric_key = _AUTOLOGGING_METRICS_MANAGER.register_metric_api_call(
+                    run_id, metric_name, dataset_name, call_command
+                )
+                _AUTOLOGGING_METRICS_MANAGER.log_post_training_metric(
+                    run_id, metric_key, metric
+                )
+
+        return metric
 
     # we need patch model.score method because:
     #  some model.score() implementation won't call metric APIs in `sklearn.metrics`

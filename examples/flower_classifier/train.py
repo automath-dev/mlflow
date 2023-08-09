@@ -28,12 +28,14 @@ def download_input():
     import requests
 
     url = "http://download.tensorflow.org/example_images/flower_photos.tgz"
-    print("downloading '{}' into '{}'".format(url, os.path.abspath("flower_photos.tgz")))
+    print(f"""downloading '{url}' into '{os.path.abspath("flower_photos.tgz")}'""")
     r = requests.get(url)
     with open("flower_photos.tgz", "wb") as f:
         f.write(r.content)
 
-    print("decompressing flower_photos.tgz to '{}'".format(os.path.abspath("flower_photos")))
+    print(
+        f"""decompressing flower_photos.tgz to '{os.path.abspath("flower_photos")}'"""
+    )
     with tarfile.open("flower_photos.tgz") as tar:
         tar.extractall(path="./")
 
@@ -111,10 +113,7 @@ class MLflowLogger(Callback):
         if not logs:
             return
         for name, value in logs.items():
-            if name.startswith("val_"):
-                name = "valid_" + name[4:]
-            else:
-                name = "train_" + name
+            name = f"valid_{name[4:]}" if name.startswith("val_") else f"train_{name}"
             mlflow.log_metric(name, value)
         val_loss = logs["val_loss"]
         if val_loss < self._best_val_loss:
@@ -131,11 +130,11 @@ class MLflowLogger(Callback):
         x, y = self._train
         train_res = self._model.evaluate(x=x, y=y)
         for name, value in zip(self._model.metrics_names, train_res):
-            mlflow.log_metric("train_{}".format(name), value)
+            mlflow.log_metric(f"train_{name}", value)
         x, y = self._valid
         valid_res = self._model.evaluate(x=x, y=y)
         for name, value in zip(self._model.metrics_names, valid_res):
-            mlflow.log_metric("valid_{}".format(name), value)
+            mlflow.log_metric(f"valid_{name}", value)
         signature = infer_signature(x, y)
         log_model(keras_model=self._model, signature=signature, **self._pyfunc_params)
 

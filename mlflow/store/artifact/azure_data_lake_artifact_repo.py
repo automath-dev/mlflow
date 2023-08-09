@@ -33,8 +33,8 @@ def _parse_abfss_uri(uri):
         raise MlflowException(
             "ABFSS URI must be of the form abfss://<filesystem>@<account>.dfs.core.windows.net"
         )
-    filesystem = match.group(1)
-    account_name = match.group(2)
+    filesystem = match[1]
+    account_name = match[2]
     path = parsed.path
     if path.startswith("/"):
         path = path[1:]

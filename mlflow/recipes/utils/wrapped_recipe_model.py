@@ -50,7 +50,7 @@ class WrappedRecipeModel(PythonModel):
             if self.target_column_class_labels is not None
             else self._classifier.classes_
         )
-        score_cols = [f"{self.predict_prefix}score_" + str(c) for c in classes]
+        score_cols = [f"{self.predict_prefix}score_{str(c)}" for c in classes]
         probabilities = self._classifier.predict_proba(model_input)
         output = pd.DataFrame(columns=score_cols, data=probabilities)
         output[f"{self.predict_prefix}score"] = np.max(probabilities, axis=1)

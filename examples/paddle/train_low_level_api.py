@@ -33,8 +33,7 @@ class Regressor(paddle.nn.Layer):
 
     @paddle.jit.to_static
     def forward(self, inputs):
-        x = self.fc(inputs)
-        return x
+        return self.fc(inputs)
 
 
 if __name__ == "__main__":
@@ -63,9 +62,7 @@ if __name__ == "__main__":
             loss = F.square_error_cost(predicts, label=prices)
             avg_loss = paddle.mean(loss)
             if iter_id % 20 == 0:
-                print(
-                    "epoch: {}, iter: {}, loss is: {}".format(epoch_id, iter_id, avg_loss.numpy())
-                )
+                print(f"epoch: {epoch_id}, iter: {iter_id}, loss is: {avg_loss.numpy()}")
 
             avg_loss.backward()
             opt.step()

@@ -9,7 +9,7 @@ h2o.init()
 wine = h2o.import_file(path="wine-quality.csv")
 r = wine["quality"].runif()
 train = wine[r < 0.7]
-test = wine[0.3 <= r]
+test = wine[r >= 0.3]
 
 
 def train_random_forest(ntrees):

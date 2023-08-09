@@ -27,7 +27,7 @@ text_labels = [
     "bag",
     "ankle boot",
 ]
-X, y = mnist_train[0:10]
+X, y = mnist_train[:10]
 
 transformer = transforms.Compose([transforms.ToTensor(), transforms.Normalize(0.13, 0.31)])
 mnist_train = mnist_train.transform_first(transformer)

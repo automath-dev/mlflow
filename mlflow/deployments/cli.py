@@ -140,7 +140,9 @@ def create_deployment(flavor, model_uri, target, name, config, endpoint):
         )
     else:
         deployment = client.create_deployment(name, model_uri, flavor, config=config_dict)
-    click.echo("\n{} deployment {} is created".format(deployment["flavor"], deployment["name"]))
+    click.echo(
+        f'\n{deployment["flavor"]} deployment {deployment["name"]} is created'
+    )
 
 
 @commands.command("update")
@@ -182,7 +184,7 @@ def update_deployment(flavor, model_uri, target, name, config, endpoint):
         )
     else:
         ret = client.update_deployment(name, model_uri=model_uri, flavor=flavor, config=config_dict)
-    click.echo("Deployment {} is updated (with flavor {})".format(name, ret["flavor"]))
+    click.echo(f'Deployment {name} is updated (with flavor {ret["flavor"]})')
 
 
 @commands.command("delete")
@@ -203,11 +205,10 @@ def delete_deployment(target, name, config, endpoint):
             client.delete_deployment(name, config=config_dict, endpoint=endpoint)
         else:
             client.delete_deployment(name, config=config_dict)
+    elif "endpoint" in sig.parameters:
+        client.delete_deployment(name, endpoint=endpoint)
     else:
-        if "endpoint" in sig.parameters:
-            client.delete_deployment(name, endpoint=endpoint)
-        else:
-            client.delete_deployment(name)
+        client.delete_deployment(name)
 
     click.echo(f"Deployment {name} is deleted")
 
@@ -386,7 +387,7 @@ def create_endpoint(target, name, config):
     config_dict = _user_args_to_dict(config)
     client = interface.get_deploy_client(target)
     endpoint = client.create_endpoint(name, config=config_dict)
-    click.echo("\nEndpoint {} is created".format(endpoint["name"]))
+    click.echo(f'\nEndpoint {endpoint["name"]} is created')
 
 
 @commands.command("update-endpoint")

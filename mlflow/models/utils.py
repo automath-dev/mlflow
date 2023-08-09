@@ -90,11 +90,7 @@ class _Example:
             )
 
         def _is_sparse_matrix(x):
-            if not HAS_SCIPY:
-                # we can safely assume that if no scipy is installed,
-                # the user won't log scipy sparse matrices
-                return False
-            return isinstance(x, (csc_matrix, csr_matrix))
+            return False if not HAS_SCIPY else isinstance(x, (csc_matrix, csr_matrix))
 
         def _handle_ndarray_nans(x: np.ndarray):
             if np.issubdtype(x.dtype, np.number):
@@ -439,35 +435,34 @@ def _enforce_mlflow_datatype(name, values: pd.Series, t: DataType):
 
     if is_upcast:
         return values.astype(numpy_type, errors="raise")
-    else:
-        # NB: conversion between incompatible types (e.g. floats -> ints or
-        # double -> float) are not allowed. While supported by pandas and numpy,
-        # these conversions alter the values significantly.
-        def all_ints(xs):
-            return all(pd.isnull(x) or int(x) == x for x in xs)
+    # NB: conversion between incompatible types (e.g. floats -> ints or
+    # double -> float) are not allowed. While supported by pandas and numpy,
+    # these conversions alter the values significantly.
+    def all_ints(xs):
+        return all(pd.isnull(x) or int(x) == x for x in xs)
 
-        hint = ""
-        if (
-            values.dtype == np.float64
-            and numpy_type.kind in ("i", "u")
-            and values.hasnans
-            and all_ints(values)
-        ):
-            hint = (
-                " Hint: the type mismatch is likely caused by missing values. "
-                "Integer columns in python can not represent missing values and are therefore "
-                "encoded as floats. The best way to avoid this problem is to infer the model "
-                "schema based on a realistic data sample (training dataset) that includes missing "
-                "values. Alternatively, you can declare integer columns as doubles (float64) "
-                "whenever these columns may have missing values. See `Handling Integers With "
-                "Missing Values <https://www.mlflow.org/docs/latest/models.html#"
-                "handling-integers-with-missing-values>`_ for more details."
-            )
-
-        raise MlflowException(
-            "Incompatible input types for column {}. "
-            "Can not safely convert {} to {}.{}".format(name, values.dtype, numpy_type, hint)
+    hint = ""
+    if (
+        values.dtype == np.float64
+        and numpy_type.kind in ("i", "u")
+        and values.hasnans
+        and all_ints(values)
+    ):
+        hint = (
+            " Hint: the type mismatch is likely caused by missing values. "
+            "Integer columns in python can not represent missing values and are therefore "
+            "encoded as floats. The best way to avoid this problem is to infer the model "
+            "schema based on a realistic data sample (training dataset) that includes missing "
+            "values. Alternatively, you can declare integer columns as doubles (float64) "
+            "whenever these columns may have missing values. See `Handling Integers With "
+            "Missing Values <https://www.mlflow.org/docs/latest/models.html#"
+            "handling-integers-with-missing-values>`_ for more details."
         )
+
+    raise MlflowException(
+        "Incompatible input types for column {}. "
+        "Can not safely convert {} to {}.{}".format(name, values.dtype, numpy_type, hint)
+    )
 
 
 def _enforce_unnamed_col_schema(pf_input: PyFuncInput, input_schema: Schema):
@@ -576,10 +571,7 @@ def _enforce_tensor_schema(pf_input: PyFuncInput, input_schema: Schema):
     """Enforce the input tensor(s) conforms to the model's tensor-based signature."""
 
     def _is_sparse_matrix(x):
-        if not HAS_SCIPY:
-            # we can safely assume that it's not a sparse matrix if scipy is not installed
-            return False
-        return isinstance(x, (csr_matrix, csc_matrix))
+        return False if not HAS_SCIPY else isinstance(x, (csr_matrix, csc_matrix))
 
     if input_schema.has_input_names():
         if isinstance(pf_input, dict):
@@ -863,12 +855,11 @@ def add_libraries_to_model(model_uri, run_id=None, registered_model_name=None):
     import mlflow
     from mlflow.models.wheeled_model import WheeledModel
 
-    if mlflow.active_run() is None:
-        if run_id is None:
-            run_id = get_model_version_from_model_uri(model_uri).run_id
-        with mlflow.start_run(run_id):
-            return WheeledModel.log_model(model_uri, registered_model_name)
-    else:
+    if mlflow.active_run() is not None:
+        return WheeledModel.log_model(model_uri, registered_model_name)
+    if run_id is None:
+        run_id = get_model_version_from_model_uri(model_uri).run_id
+    with mlflow.start_run(run_id):
         return WheeledModel.log_model(model_uri, registered_model_name)
 
 
@@ -885,8 +876,7 @@ def get_model_version_from_model_uri(model_uri):
     )
     client = MlflowClient(registry_uri=databricks_profile_uri)
     (name, version) = get_model_name_and_version(client, model_uri)
-    model_version = client.get_model_version(name, version)
-    return model_version
+    return client.get_model_version(name, version)
 
 
 def _enforce_params_schema(params: Optional[Dict[str, Any]], schema: Optional[ParamSchema]):
@@ -915,8 +905,7 @@ def _enforce_params_schema(params: Optional[Dict[str, Any]], schema: Optional[Pa
         params = {str(k): v for k, v in params.items()}
 
     allowed_keys = {param.name for param in schema.params}
-    ignored_keys = set(params) - allowed_keys
-    if ignored_keys:
+    if ignored_keys := set(params) - allowed_keys:
         _logger.warning(
             f"Unrecognized params {list(ignored_keys)} are ignored for inference. "
             f"Supported params are: {allowed_keys}. "

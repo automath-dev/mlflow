@@ -79,14 +79,15 @@ def _infer_model_type_by_labels(labels):
 
 def _extract_raw_model(model):
     model_loader_module = model.metadata.flavors["python_function"]["loader_module"]
-    if model_loader_module == "mlflow.sklearn" and not isinstance(model, _ServedPyFuncModel):
-        # If we load a sklearn model with mlflow.pyfunc.load_model, the model will be wrapped
-        # with _SklearnModelWrapper, we need to extract the raw model from it.
-        if isinstance(model._model_impl, _SklearnModelWrapper):
-            return model_loader_module, model._model_impl.sklearn_model
-        return model_loader_module, model._model_impl
-    else:
+    if model_loader_module != "mlflow.sklearn" or isinstance(
+        model, _ServedPyFuncModel
+    ):
         return model_loader_module, None
+    # If we load a sklearn model with mlflow.pyfunc.load_model, the model will be wrapped
+    # with _SklearnModelWrapper, we need to extract the raw model from it.
+    if isinstance(model._model_impl, _SklearnModelWrapper):
+        return model_loader_module, model._model_impl.sklearn_model
+    return model_loader_module, model._model_impl
 
 
 def _extract_predict_fn(model, raw_model):
@@ -252,13 +253,11 @@ def _get_classifier_per_class_metrics_collection_df(y, y_pred, labels, sample_we
             positive_class_index, positive_class, y, y_pred, None
         )
         per_class_metrics = {"positive_class": positive_class}
-        per_class_metrics.update(
-            _get_binary_classifier_metrics(
-                y_true=y_bin,
-                y_pred=y_pred_bin,
-                pos_label=1,
-                sample_weights=sample_weights,
-            )
+        per_class_metrics |= _get_binary_classifier_metrics(
+            y_true=y_bin,
+            y_pred=y_pred_bin,
+            pos_label=1,
+            sample_weights=sample_weights,
         )
         per_class_metrics_list.append(per_class_metrics)
 

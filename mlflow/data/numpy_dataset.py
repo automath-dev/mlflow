@@ -185,16 +185,15 @@ def from_numpy(
     from mlflow.data.dataset_source_registry import resolve_dataset_source
     from mlflow.tracking.context import registry
 
-    if source is not None:
-        if isinstance(source, DatasetSource):
-            resolved_source = source
-        else:
-            resolved_source = resolve_dataset_source(
-                source,
-            )
-    else:
+    if source is None:
         context_tags = registry.resolve_tags()
         resolved_source = CodeDatasetSource(tags=context_tags)
+    elif isinstance(source, DatasetSource):
+        resolved_source = source
+    else:
+        resolved_source = resolve_dataset_source(
+            source,
+        )
     return NumpyDataset(
         features=features, source=resolved_source, targets=targets, name=name, digest=digest
     )

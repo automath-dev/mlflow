@@ -225,7 +225,11 @@ def test_signature_and_examples_saved_correctly(
     # Note: Signature inference fails on native model predict_interval/predict_quantiles
     prediction = auto_arima_model.predict(fh=FH)
     signature = infer_signature(data_airline, prediction) if use_signature else None
-    example = pd.DataFrame(data_airline[0:5].copy(deep=False)) if use_example else None
+    example = (
+        pd.DataFrame(data_airline[:5].copy(deep=False))
+        if use_example
+        else None
+    )
     flavor.save_model(auto_arima_model, path=model_path, signature=signature, input_example=example)
     mlflow_model = Model.load(model_path)
     assert signature == mlflow_model.signature
@@ -269,7 +273,11 @@ def test_signature_and_example_for_pyfunc_predict_inteval(
     )
     forecast = loaded_pyfunc.predict(predict_conf)
     signature = infer_signature(data_airline, forecast) if use_signature else None
-    example = pd.DataFrame(data_airline[0:5].copy(deep=False)) if use_example else None
+    example = (
+        pd.DataFrame(data_airline[:5].copy(deep=False))
+        if use_example
+        else None
+    )
     flavor.save_model(
         auto_arima_model,
         path=model_path_secondary,

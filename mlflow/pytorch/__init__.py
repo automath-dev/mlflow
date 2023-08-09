@@ -623,15 +623,14 @@ def _load_model(path, **kwargs):
 
     if Version(torch.__version__) >= Version("1.5.0"):
         return torch.load(model_path, **kwargs)
-    else:
-        try:
-            # load the model as an eager model.
-            return torch.load(model_path, **kwargs)
-        except Exception:
-            # If fails, assume the model as a scripted model
-            # `torch.jit.load` does not accept `pickle_module`.
-            kwargs.pop("pickle_module", None)
-            return torch.jit.load(model_path, **kwargs)
+    try:
+        # load the model as an eager model.
+        return torch.load(model_path, **kwargs)
+    except Exception:
+        # If fails, assume the model as a scripted model
+        # `torch.jit.load` does not accept `pickle_module`.
+        kwargs.pop("pickle_module", None)
+        return torch.jit.load(model_path, **kwargs)
 
 
 def load_model(model_uri, dst_path=None, **kwargs):
@@ -775,8 +774,7 @@ class _PyTorchWrapper:
                 preds = preds.to(_TORCH_CPU_DEVICE_NAME)
             if not isinstance(preds, torch.Tensor):
                 raise TypeError(
-                    "Expected PyTorch model to output a single output tensor, "
-                    "but got output of type '{}'".format(type(preds))
+                    f"Expected PyTorch model to output a single output tensor, but got output of type '{type(preds)}'"
                 )
             if isinstance(data, pd.DataFrame):
                 predicted = pd.DataFrame(preds.numpy())
@@ -838,9 +836,7 @@ def save_state_dict(state_dict, path, **kwargs):
     # successfully completes, leaving the user unaware of the mistake.
     if not isinstance(state_dict, dict):
         raise TypeError(
-            "Invalid object type for `state_dict`: {}. Must be an instance of `dict`".format(
-                type(state_dict)
-            )
+            f"Invalid object type for `state_dict`: {type(state_dict)}. Must be an instance of `dict`"
         )
 
     os.makedirs(path, exist_ok=True)

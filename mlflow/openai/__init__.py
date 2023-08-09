@@ -220,16 +220,14 @@ def _parse_variables(messages):
 
 
 def _get_input_schema(messages):
-    if messages:
-        variables = _parse_variables(messages)
-        if len(variables) == 1:
-            return Schema([ColSpec(type="string")])
-        elif len(variables) > 1:
-            return Schema([ColSpec(name=v, type="string") for v in variables])
-        else:
-            return Schema([ColSpec(type="string")])
-    else:
+    if not messages:
         return Schema([ColSpec(type="string")])
+    variables = _parse_variables(messages)
+    return (
+        Schema([ColSpec(type="string")])
+        if len(variables) == 1 or len(variables) <= 1
+        else Schema([ColSpec(name=v, type="string") for v in variables])
+    )
 
 
 @experimental
@@ -592,15 +590,13 @@ class _OpenAIWrapper:
         return [[m.format(**params) for m in self.formattable_messages] for params in params_list]
 
     def get_params_list(self, data):
-        if len(self.variables) == 1:
-            variable = self.variables[0]
-            if variable in data.columns:
-                return data[[variable]].to_dict(orient="records")
-            else:
-                first_string_column = _first_string_column(data)
-                return [{variable: s} for s in data[first_string_column]]
-        else:
+        if len(self.variables) != 1:
             return data[self.variables].to_dict(orient="records")
+        variable = self.variables[0]
+        if variable in data.columns:
+            return data[[variable]].to_dict(orient="records")
+        first_string_column = _first_string_column(data)
+        return [{variable: s} for s in data[first_string_column]]
 
     def _predict_chat(self, data):
         from mlflow.openai.api_request_parallel_processor import process_api_requests

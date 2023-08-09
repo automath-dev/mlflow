@@ -123,7 +123,7 @@ def _validate_env_vars():
 def _set_env_vars():
     # if json license is detected, we parse it and set the env vars
     loaded_license = json.loads(os.environ[_JOHNSNOWLABS_ENV_JSON_LICENSE_KEY])
-    os.environ.update({k: str(v) for k, v in loaded_license.items() if v is not None})
+    os.environ |= {k: str(v) for k, v in loaded_license.items() if v is not None}
 
 
 @experimental
@@ -759,8 +759,6 @@ def _get_or_create_sparksession(model_path=None):
 
     spark = _get_active_spark_session()
     if spark is None:
-        spark_conf = {}
-        spark_conf["spark.python.worker.reuse"] = "true"
         os.environ["PYSPARK_PYTHON"] = sys.executable
         os.environ["PYSPARK_DRIVER_PYTHON"] = sys.executable
         if model_path:
@@ -769,11 +767,10 @@ def _get_or_create_sparksession(model_path=None):
             if license_path:
                 with open(license_path) as f:
                     loaded_license = json.load(f)
-                    os.environ.update(
-                        {k: str(v) for k, v in loaded_license.items() if v is not None}
-                    )
+                    os.environ |= {k: str(v) for k, v in loaded_license.items() if v is not None}
                     os.environ["JSL_NLP_LICENSE"] = loaded_license["HC_LICENSE"]
             _logger.info("Starting a new Session with Jars: %s", jar_paths)
+            spark_conf = {"spark.python.worker.reuse": "true"}
             spark = nlp.start(
                 nlp=False,
                 spark_nlp=False,

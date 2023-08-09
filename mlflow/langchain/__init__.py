@@ -566,16 +566,15 @@ def _save_model(model, path, loader_fn, persist_dir):
             model.save_agent(agent_data_path)
             model_data_kwargs[_AGENT_DATA_KEY] = _AGENT_DATA_FILE_NAME
 
-        if model.tools:
-            tools_data_path = os.path.join(path, _TOOLS_DATA_FILE_NAME)
-            with open(tools_data_path, "wb") as f:
-                cloudpickle.dump(model.tools, f)
-            model_data_kwargs[_TOOLS_DATA_KEY] = _TOOLS_DATA_FILE_NAME
-        else:
+        if not model.tools:
             raise mlflow.MlflowException.invalid_parameter_value(
                 "For initializing the AgentExecutor, tools must be provided."
             )
 
+        tools_data_path = os.path.join(path, _TOOLS_DATA_FILE_NAME)
+        with open(tools_data_path, "wb") as f:
+            cloudpickle.dump(model.tools, f)
+        model_data_kwargs[_TOOLS_DATA_KEY] = _TOOLS_DATA_FILE_NAME
         key_to_ignore = ["llm_chain", "agent", "tools", "callback_manager"]
         temp_dict = {k: v for k, v in model.__dict__.items() if k not in key_to_ignore}
 
@@ -594,16 +593,15 @@ def _save_model(model, path, loader_fn, persist_dir):
         model_data_kwargs[_LOADER_ARG_KEY] = special_chain_info.loader_arg
 
         if persist_dir is not None:
-            if os.path.exists(persist_dir):
-                # Save persist_dir by copying into subdir _PERSIST_DIR_NAME
-                persist_dir_data_path = os.path.join(path, _PERSIST_DIR_NAME)
-                shutil.copytree(persist_dir, persist_dir_data_path)
-                model_data_kwargs[_PERSIST_DIR_KEY] = _PERSIST_DIR_NAME
-            else:
+            if not os.path.exists(persist_dir):
                 raise mlflow.MlflowException.invalid_parameter_value(
                     "The directory provided for persist_dir does not exist."
                 )
 
+            # Save persist_dir by copying into subdir _PERSIST_DIR_NAME
+            persist_dir_data_path = os.path.join(path, _PERSIST_DIR_NAME)
+            shutil.copytree(persist_dir, persist_dir_data_path)
+            model_data_kwargs[_PERSIST_DIR_KEY] = _PERSIST_DIR_NAME
         # Save model
         model.save(model_data_path)
     elif isinstance(model, langchain.chains.base.Chain):
@@ -646,12 +644,13 @@ def _load_model(
                 "Missing file for loader_fn which is required to build the model."
             )
         kwargs = {loader_arg: _load_from_pickle(loader_fn_path, persist_dir)}
-        if model_type == _RetrieverChain.__name__:
-            model = _RetrieverChain.load(path, **kwargs).retriever
-        else:
-            model = load_chain(path, **kwargs)
+        return (
+            _RetrieverChain.load(path, **kwargs).retriever
+            if model_type == _RetrieverChain.__name__
+            else load_chain(path, **kwargs)
+        )
     elif agent_path is None and tools_path is None:
-        model = load_chain(path)
+        return load_chain(path)
     else:
         from langchain.agents import initialize_agent
 
@@ -671,8 +670,7 @@ def _load_model(
             with open(agent_primitive_path) as config_file:
                 kwargs = json.load(config_file)
 
-        model = initialize_agent(tools=tools, llm=llm, agent_path=agent_path, **kwargs)
-    return model
+        return initialize_agent(tools=tools, llm=llm, agent_path=agent_path, **kwargs)
 
 
 class _LangChainModelWrapper:

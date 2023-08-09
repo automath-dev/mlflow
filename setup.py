@@ -18,8 +18,10 @@ def package_files(directory):
     mlflow_dir = os.path.abspath("mlflow")
     paths = []
     for root, _, filenames in os.walk(directory):
-        for filename in filenames:
-            paths.append(os.path.relpath(os.path.join(root, filename), mlflow_dir))
+        paths.extend(
+            os.path.relpath(os.path.join(root, filename), mlflow_dir)
+            for filename in filenames
+        )
     return paths
 
 
@@ -73,7 +75,7 @@ with open(os.path.join("requirements", "gateway-requirements.txt")) as f:
     GATEWAY_REQUIREMENTS = remove_comments_and_empty_lines(f.read().splitlines())
 
 _is_mlflow_skinny = bool(os.environ.get(_MLFLOW_SKINNY_ENV_VAR))
-logging.debug("{} env var is set: {}".format(_MLFLOW_SKINNY_ENV_VAR, _is_mlflow_skinny))
+logging.debug(f"{_MLFLOW_SKINNY_ENV_VAR} env var is set: {_is_mlflow_skinny}")
 
 
 class ListDependencies(Command):

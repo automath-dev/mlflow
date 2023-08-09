@@ -59,7 +59,7 @@ class IterativePrune:
     @staticmethod
     def prune_and_save_model(model, amount):
         for _, module in model.named_modules():
-            if isinstance(module, torch.nn.Conv2d) or isinstance(module, torch.nn.Linear):
+            if isinstance(module, (torch.nn.Conv2d, torch.nn.Linear)):
                 prune.l1_unstructured(module, name="weight", amount=amount)
                 prune.remove(module, "weight")
 
@@ -86,7 +86,7 @@ class IterativePrune:
     def write_prune_summary(summary, params):
         with tempfile.TemporaryDirectory() as tempdir:
             summary_file = os.path.join(tempdir, "pruned_model_summary.txt")
-            params = "Total Trainable Parameters :" + str(params)
+            params = f"Total Trainable Parameters :{str(params)}"
             with open(summary_file, "w") as f:
                 f.write(str(summary))
                 f.write("\n")
@@ -107,8 +107,7 @@ class IterativePrune:
         self.write_prune_summary(summary, params)
         trainer = self.run_mnist_model()
         metrics = trainer.callback_metrics
-        test_accuracy = metrics.get("avg_test_acc")
-        return test_accuracy
+        return metrics.get("avg_test_acc")
 
     def initiate_pruning_process(self, model):
         total_trials = int(vars(self.parser_args)["total_trials"])
@@ -117,9 +116,9 @@ class IterativePrune:
         for i in range(total_trials):
             parameters, trial_index = self.ax_client.get_next_trial()
             print("***************************************************************************")
-            print("Running Trial {}".format(i + 1))
+            print(f"Running Trial {i + 1}")
             print("***************************************************************************")
-            with mlflow.start_run(nested=True, run_name="Iteration" + str(i)):
+            with mlflow.start_run(nested=True, run_name=f"Iteration{str(i)}"):
                 mlflow.set_tags({"AX_TRIAL": i})
 
                 # calling the model

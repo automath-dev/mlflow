@@ -52,7 +52,7 @@ with B:
         with mlflow.start_run():  # not allowed
             mlflow.log_metric("b", 2)
     except Exception as e:
-        print(str(e))
+        print(e)
 
 # Grant B permission to edit A's experiment
 with A:

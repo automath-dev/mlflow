@@ -18,10 +18,14 @@ DEFAULT_CONDA_FILE_NAME = "conda.yaml"
 
 def _find_mlproject(directory):
     filenames = os.listdir(directory)
-    for filename in filenames:
-        if filename.lower() == MLPROJECT_FILE_NAME:
-            return os.path.join(directory, filename)
-    return None
+    return next(
+        (
+            os.path.join(directory, filename)
+            for filename in filenames
+            if filename.lower() == MLPROJECT_FILE_NAME
+        ),
+        None,
+    )
 
 
 def load_project(directory):
@@ -87,13 +91,11 @@ def load_project(directory):
             name=project_name,
         )
 
-    python_env = yaml_obj.get(env_type.PYTHON)
-    if python_env:
+    if python_env := yaml_obj.get(env_type.PYTHON):
         python_env_path = os.path.join(directory, python_env)
         if not os.path.exists(python_env_path):
             raise ExecutionException(
-                "Project specified python_env file %s, but no such "
-                "file was found." % python_env_path
+                f"Project specified python_env file {python_env_path}, but no such file was found."
             )
         return Project(
             env_type=env_type.PYTHON,
@@ -103,13 +105,11 @@ def load_project(directory):
             name=project_name,
         )
 
-    conda_path = yaml_obj.get(env_type.CONDA)
-    if conda_path:
+    if conda_path := yaml_obj.get(env_type.CONDA):
         conda_env_path = os.path.join(directory, conda_path)
         if not os.path.exists(conda_env_path):
             raise ExecutionException(
-                "Project specified conda environment file %s, but no such "
-                "file was found." % conda_env_path
+                f"Project specified conda environment file {conda_env_path}, but no such file was found."
             )
         return Project(
             env_type=env_type.CONDA,
@@ -187,14 +187,14 @@ class EntryPoint:
         self.command = command
 
     def _validate_parameters(self, user_parameters):
-        missing_params = []
-        for name in self.parameters:
-            if name not in user_parameters and self.parameters[name].default is None:
-                missing_params.append(name)
-        if missing_params:
+        if missing_params := [
+            name
+            for name in self.parameters
+            if name not in user_parameters
+            and self.parameters[name].default is None
+        ]:
             raise ExecutionException(
-                "No value given for missing parameters: %s"
-                % ", ".join([f"'{name}'" for name in missing_params])
+                f"""No value given for missing parameters: {", ".join([f"'{name}'" for name in missing_params])}"""
             )
 
     def compute_parameters(self, user_parameters, storage_dir):
@@ -216,24 +216,26 @@ class EntryPoint:
         # Validate params before attempting to resolve parameter values
         self._validate_parameters(user_parameters)
         final_params = {}
-        extra_params = {}
-
         parameter_keys = list(self.parameters.keys())
         for key in parameter_keys:
             param_obj = self.parameters[key]
             key_position = parameter_keys.index(key)
             value = user_parameters[key] if key in user_parameters else self.parameters[key].default
             final_params[key] = param_obj.compute_value(value, storage_dir, key_position)
-        for key in user_parameters:
-            if key not in final_params:
-                extra_params[key] = user_parameters[key]
+        extra_params = {
+            key: user_parameters[key]
+            for key in user_parameters
+            if key not in final_params
+        }
         return self._sanitize_param_dict(final_params), self._sanitize_param_dict(extra_params)
 
     def compute_command(self, user_parameters, storage_dir):
         params, extra_params = self.compute_parameters(user_parameters, storage_dir)
         command_with_params = self.command.format(**params)
-        command_arr = [command_with_params]
-        command_arr.extend([f"--{key} {value}" for key, value in extra_params.items()])
+        command_arr = [
+            command_with_params,
+            *[f"--{key} {value}" for key, value in extra_params.items()],
+        ]
         return " ".join(command_arr)
 
     @staticmethod
@@ -261,8 +263,7 @@ class Parameter:
         return user_param_value
 
     def _compute_path_value(self, user_param_value, storage_dir, key_position):
-        local_path = get_local_path_or_none(user_param_value)
-        if local_path:
+        if local_path := get_local_path_or_none(user_param_value):
             if not os.path.exists(local_path):
                 raise ExecutionException(
                     f"Got value {user_param_value} for parameter {self.name}, but no such file or "

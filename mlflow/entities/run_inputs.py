@@ -12,9 +12,7 @@ class RunInputs(_MLflowObject):
         self._dataset_inputs = dataset_inputs
 
     def __eq__(self, other: _MLflowObject) -> bool:
-        if type(other) is type(self):
-            return self.__dict__ == other.__dict__
-        return False
+        return self.__dict__ == other.__dict__ if type(other) is type(self) else False
 
     @property
     def dataset_inputs(self) -> List[DatasetInput]:

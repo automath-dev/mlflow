@@ -34,7 +34,7 @@ if __name__ == "__main__":
     mlflow.log_params(params)
 
     nlp.begin_training()
-    for itn in range(params["n_iter"]):
+    for _ in range(params["n_iter"]):
         random.shuffle(TRAIN_DATA)
         losses = {}
         # batch up the examples using spaCy's minibatch

@@ -50,8 +50,9 @@ class DbfsRestArtifactRepository(ArtifactRepository):
         # Databricks profile info, so strip it before setting ``artifact_uri``.
         super().__init__(remove_databricks_profile_info_from_artifact_uri(artifact_uri))
 
-        databricks_profile_uri = get_databricks_profile_uri_from_artifact_uri(artifact_uri)
-        if databricks_profile_uri:
+        if databricks_profile_uri := get_databricks_profile_uri_from_artifact_uri(
+            artifact_uri
+        ):
             hostcreds_from_uri = get_databricks_host_creds(databricks_profile_uri)
             self.get_host_creds = lambda: hostcreds_from_uri
         else:
@@ -94,10 +95,7 @@ class DbfsRestArtifactRepository(ArtifactRepository):
             raise MlflowException(f"DBFS path {dbfs_path} does not exist")
 
     def _get_dbfs_path(self, artifact_path):
-        return "/{}/{}".format(
-            strip_prefix(self.artifact_uri, "dbfs:/"),
-            strip_prefix(artifact_path, "/"),
-        )
+        return f'/{strip_prefix(self.artifact_uri, "dbfs:/")}/{strip_prefix(artifact_path, "/")}'
 
     def _get_dbfs_endpoint(self, artifact_path):
         return f"/dbfs{self._get_dbfs_path(artifact_path)}"
@@ -134,10 +132,7 @@ class DbfsRestArtifactRepository(ArtifactRepository):
                 self.log_artifact(file_path, artifact_subdir)
 
     def list_artifacts(self, path=None):
-        if path:
-            dbfs_path = self._get_dbfs_path(path)
-        else:
-            dbfs_path = self._get_dbfs_path("")
+        dbfs_path = self._get_dbfs_path(path) if path else self._get_dbfs_path("")
         dbfs_list_json = {"path": dbfs_path}
         response = self._dbfs_list_api(dbfs_list_json)
         try:
@@ -154,7 +149,7 @@ class DbfsRestArtifactRepository(ArtifactRepository):
             return []
         dbfs_files = json_response.get("files", [])
         for dbfs_file in dbfs_files:
-            stripped_path = strip_prefix(dbfs_file["path"], artifact_prefix + "/")
+            stripped_path = strip_prefix(dbfs_file["path"], f"{artifact_prefix}/")
             # If `path` is a file, the DBFS list API returns a single list element with the
             # same name as `path`. The list_artifacts API expects us to return an empty list in this
             # case, so we do so here.
@@ -224,6 +219,6 @@ def dbfs_artifact_repo_factory(artifact_uri):
         # to mean the current workspace. Using `DbfsRestArtifactRepository` to access the current
         # workspace's DBFS should still work; it just may be slower.
         final_artifact_uri = remove_databricks_profile_info_from_artifact_uri(cleaned_artifact_uri)
-        file_uri = "file:///dbfs/{}".format(strip_prefix(final_artifact_uri, "dbfs:/"))
+        file_uri = f'file:///dbfs/{strip_prefix(final_artifact_uri, "dbfs:/")}'
         return LocalArtifactRepository(file_uri)
     return DbfsRestArtifactRepository(cleaned_artifact_uri)

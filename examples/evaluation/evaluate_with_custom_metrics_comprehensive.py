@@ -43,7 +43,7 @@ def custom_artifact(eval_df, builtin_metrics, _artifacts_dir):
     example_np_arr = np.array([1, 2, 3])
     example_df = pd.DataFrame({"test": [2.2, 3.1], "test2": [3, 2]})
     example_dict = {"hello": "there", "test_list": [0.1, 0.3, 4]}
-    example_dict.update(builtin_metrics)
+    example_dict |= builtin_metrics
     example_dict_2 = '{"a": 3, "b": [1, 2, 3]}'
     example_image = plt.figure()
     plt.scatter(eval_df["prediction"], eval_df["target"])

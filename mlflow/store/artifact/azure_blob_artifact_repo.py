@@ -82,9 +82,9 @@ class AzureBlobArtifactRepository(ArtifactRepository):
                 "<container>@<account>.blob.core.windows.net"
                 " or <container>@<account>.blob.core.chinacloudapi.cn"
             )
-        container = match.group(1)
-        storage_account = match.group(2)
-        api_uri_suffix = match.group(3)
+        container = match[1]
+        storage_account = match[2]
+        api_uri_suffix = match[3]
         path = parsed.path
         if path.startswith("/"):
             path = path[1:]
@@ -139,7 +139,7 @@ class AzureBlobArtifactRepository(ArtifactRepository):
         if path:
             dest_path = posixpath.join(dest_path, path)
         infos = []
-        prefix = dest_path if dest_path.endswith("/") else dest_path + "/"
+        prefix = dest_path if dest_path.endswith("/") else f"{dest_path}/"
         results = container_client.walk_blobs(name_starts_with=prefix)
 
         for result in results:

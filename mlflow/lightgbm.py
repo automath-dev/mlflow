@@ -485,8 +485,7 @@ def _patch_metric_names(metric_dict):
     patched_metrics = {
         metric_name.replace("@", "_at_"): value for metric_name, value in metric_dict.items()
     }
-    changed_keys = set(patched_metrics.keys()) - set(metric_dict.keys())
-    if changed_keys:
+    if changed_keys := set(patched_metrics.keys()) - set(metric_dict.keys()):
         _logger.info(
             "Identified one or more metrics with names containing the invalid character `@`."
             " These metric names have been sanitized by replacing `@` with `_at_`, as follows: %s",
@@ -499,7 +498,7 @@ def _patch_metric_names(metric_dict):
 def _autolog_callback(env, metrics_logger, eval_results):
     res = {}
     for data_name, eval_name, value, _ in env.evaluation_result_list:
-        key = data_name + "-" + eval_name
+        key = f"{data_name}-{eval_name}"
         res[key] = value
     res = _patch_metric_names(res)
     metrics_logger.record_metrics(res, env.iteration)
@@ -518,7 +517,7 @@ def autolog(
     silent=False,
     registered_model_name=None,
     extra_tags=None,
-):  # pylint: disable=unused-argument
+):    # pylint: disable=unused-argument
     """
     Enables (or disables) and configures autologging from LightGBM to MLflow. Logs the following:
 
@@ -638,7 +637,7 @@ def autolog(
     #   (there is no way to get the data back from a Dataset object once it is consumed by train)
     # We store it on the Dataset object so the train function is able to read it.
     def __init__(original, self, *args, **kwargs):
-        data = args[0] if len(args) > 0 else kwargs.get("data")
+        data = args[0] if args else kwargs.get("data")
 
         if data is not None:
             try:
@@ -706,7 +705,7 @@ def autolog(
 
         # logging booster params separately via mlflow.log_params to extract key/value pairs
         # and make it easier to compare them across runs.
-        booster_params = args[0] if len(args) > 0 else kwargs["params"]
+        booster_params = args[0] if args else kwargs["params"]
         autologging_client.log_params(run_id=mlflow.active_run().info.run_id, params=booster_params)
 
         unlogged_params = [

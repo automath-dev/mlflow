@@ -52,7 +52,7 @@ class KerasImageClassifierPyfunc:
         self._model = model
         self._image_dims = image_dims
         self._domain = domain
-        probs_names = ["p({})".format(x) for x in domain]
+        probs_names = [f"p({x})" for x in domain]
         self._column_names = ["predicted_label", "predicted_label_id"] + probs_names
 
     def predict(

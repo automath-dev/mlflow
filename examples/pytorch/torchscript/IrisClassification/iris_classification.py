@@ -102,4 +102,4 @@ if __name__ == "__main__":
             prediction = loaded_pytorch_model(test_datapoint)
             actual = "setosa"
             predicted = target_names[torch.argmax(prediction)]
-            print("\nPREDICTION RESULT: ACTUAL: {}, PREDICTED: {}".format(actual, predicted))
+            print(f"\nPREDICTION RESULT: ACTUAL: {actual}, PREDICTED: {predicted}")

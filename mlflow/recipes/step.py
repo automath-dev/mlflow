@@ -294,36 +294,37 @@ class BaseStep(metaclass=abc.ABCMeta):
         (e.g. MLflow Run creation notification hooks) if MLflow Recipes is running in the
         Databricks Runtime.
         """
-        if is_in_databricks_runtime():
-            try:
-                from IPython.utils.io import capture_output
-                from dbruntime.spark_connection import (
-                    initialize_spark_connection,
-                    is_pinn_mode_enabled,
-                )
+        if not is_in_databricks_runtime():
+            return
+        try:
+            from IPython.utils.io import capture_output
+            from dbruntime.spark_connection import (
+                initialize_spark_connection,
+                is_pinn_mode_enabled,
+            )
 
-                with capture_output():
-                    spark_handles, entry_point = initialize_spark_connection(is_pinn_mode_enabled())
+            with capture_output():
+                spark_handles, entry_point = initialize_spark_connection(is_pinn_mode_enabled())
+        except Exception as e:
+            _logger.warning(
+                "Encountered unexpected failure while initializing Spark connection. Spark"
+                " operations may not succeed. Exception: %s",
+                e,
+            )
+        else:
+            try:
+                from dbruntime.MlflowCreateRunHook import get_mlflow_create_run_hook
+
+                # `get_mlflow_create_run_hook` sets up a patch to trigger a Databricks command
+                # notification every time an MLflow Run is created. This notification is
+                # visible to users in notebook environments
+                get_mlflow_create_run_hook(spark_handles["sc"], entry_point)
             except Exception as e:
                 _logger.warning(
-                    "Encountered unexpected failure while initializing Spark connection. Spark"
-                    " operations may not succeed. Exception: %s",
+                    "Encountered unexpected failure while setting up Databricks MLflow Run"
+                    " creation hooks. Exception: %s",
                     e,
                 )
-            else:
-                try:
-                    from dbruntime.MlflowCreateRunHook import get_mlflow_create_run_hook
-
-                    # `get_mlflow_create_run_hook` sets up a patch to trigger a Databricks command
-                    # notification every time an MLflow Run is created. This notification is
-                    # visible to users in notebook environments
-                    get_mlflow_create_run_hook(spark_handles["sc"], entry_point)
-                except Exception as e:
-                    _logger.warning(
-                        "Encountered unexpected failure while setting up Databricks MLflow Run"
-                        " creation hooks. Exception: %s",
-                        e,
-                    )
 
     def _log_step_card(self, run_id: str, step_name: str) -> None:
         """

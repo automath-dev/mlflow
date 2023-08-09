@@ -68,9 +68,7 @@ class HuggingFaceDatasetSource(DatasetSource):
             "split": self._split,
             "revision": self._revision,
             "task": self._task,
-        }
-        load_kwargs.update(kwargs)
-
+        } | kwargs
         return datasets.load_dataset(**load_kwargs)
 
     @staticmethod

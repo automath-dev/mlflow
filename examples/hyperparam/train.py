@@ -29,7 +29,7 @@ from mlflow.models import infer_signature
 
 def eval_and_log_metrics(prefix, actual, pred, epoch):
     rmse = np.sqrt(mean_squared_error(actual, pred))
-    mlflow.log_metric("{}_rmse".format(prefix), rmse, step=epoch)
+    mlflow.log_metric(f"{prefix}_rmse", rmse, step=epoch)
     return rmse
 
 
@@ -53,9 +53,9 @@ class MLflowCheckpoint(Callback):
     def __init__(self, test_x, test_y, loss="rmse"):
         self._test_x = test_x
         self._test_y = test_y
-        self.train_loss = "train_{}".format(loss)
-        self.val_loss = "val_{}".format(loss)
-        self.test_loss = "test_{}".format(loss)
+        self.train_loss = f"train_{loss}"
+        self.val_loss = f"val_{loss}"
+        self.test_loss = f"test_{loss}"
         self._best_train_loss = math.inf
         self._best_val_loss = math.inf
         self._best_model = None

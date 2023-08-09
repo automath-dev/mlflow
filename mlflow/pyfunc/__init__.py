@@ -346,10 +346,10 @@ def add_to_model(
         params[DATA] = data
     if conda_env or python_env:
         params[ENV] = {}
-        if conda_env:
-            params[ENV][EnvType.CONDA] = conda_env
-        if python_env:
-            params[ENV][EnvType.VIRTUALENV] = python_env
+    if conda_env:
+        params[ENV][EnvType.CONDA] = conda_env
+    if python_env:
+        params[ENV][EnvType.VIRTUALENV] = python_env
     return model.add_flavor(FLAVOR_NAME, **params)
 
 
@@ -561,7 +561,7 @@ def _warn_dependency_requirement_mismatches(model_path):
             if mismatch_info is not None:
                 mismatch_infos.append(str(mismatch_info))
 
-        if len(mismatch_infos) > 0:
+        if mismatch_infos:
             mismatch_str = " - " + "\n - ".join(mismatch_infos)
             warning_msg = (
                 "Detected one or more mismatches between the model's dependencies and the current "
@@ -1001,12 +1001,7 @@ def _check_udf_return_array_type(array_type, allow_struct):
         return True
 
     if isinstance(elem_type, StructType):
-        if allow_struct:
-            # Array of struct values.
-            return _check_udf_return_struct_type(elem_type)
-
-        return False
-
+        return _check_udf_return_struct_type(elem_type) if allow_struct else False
     return False
 
 
@@ -1524,36 +1519,36 @@ Compound types:
 
     @functools.wraps(udf)
     def udf_with_default_cols(*args):
-        if len(args) == 0:
-            input_schema = model_metadata.get_input_schema()
-            if input_schema and len(input_schema.optional_input_names()) > 0:
-                raise MlflowException(
-                    message="Cannot apply UDF without column names specified when"
-                    " model signature contains optional columns.",
-                    error_code=INVALID_PARAMETER_VALUE,
-                )
-            if input_schema and len(input_schema.inputs) > 0:
-                if input_schema.has_input_names():
-                    input_names = input_schema.input_names()
-                    return udf(*input_names)
-                else:
-                    raise MlflowException(
-                        message="Cannot apply udf because no column names specified. The udf "
-                        "expects {} columns with types: {}. Input column names could not be "
-                        "inferred from the model signature (column names not found).".format(
-                            len(input_schema.inputs),
-                            input_schema.inputs,
-                        ),
-                        error_code=INVALID_PARAMETER_VALUE,
-                    )
+        if args:
+            return udf(*args)
+
+        input_schema = model_metadata.get_input_schema()
+        if input_schema and len(input_schema.optional_input_names()) > 0:
+            raise MlflowException(
+                message="Cannot apply UDF without column names specified when"
+                " model signature contains optional columns.",
+                error_code=INVALID_PARAMETER_VALUE,
+            )
+        if input_schema and len(input_schema.inputs) > 0:
+            if input_schema.has_input_names():
+                input_names = input_schema.input_names()
+                return udf(*input_names)
             else:
                 raise MlflowException(
-                    "Attempting to apply udf on zero columns because no column names were "
-                    "specified as arguments or inferred from the model signature.",
+                    message="Cannot apply udf because no column names specified. The udf "
+                    "expects {} columns with types: {}. Input column names could not be "
+                    "inferred from the model signature (column names not found).".format(
+                        len(input_schema.inputs),
+                        input_schema.inputs,
+                    ),
                     error_code=INVALID_PARAMETER_VALUE,
                 )
         else:
-            return udf(*args)
+            raise MlflowException(
+                "Attempting to apply udf on zero columns because no column names were "
+                "specified as arguments or inferred from the model signature.",
+                error_code=INVALID_PARAMETER_VALUE,
+            )
 
     return udf_with_default_cols
 
@@ -1742,7 +1737,7 @@ def save_model(
             )
 
     mlflow_model = kwargs.pop("model", mlflow_model)
-    if len(kwargs) > 0:
+    if kwargs:
         raise TypeError(f"save_model() got unexpected keyword arguments: {kwargs}")
     if code_path is not None:
         if not isinstance(code_path, list):

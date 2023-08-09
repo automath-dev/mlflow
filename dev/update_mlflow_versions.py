@@ -8,7 +8,7 @@ from packaging.version import Version
 
 def get_current_py_version() -> str:
     text = Path("mlflow", "version.py").read_text()
-    return re.search(r'VERSION = "(.+)"', text).group(1)
+    return re.search(r'VERSION = "(.+)"', text)[1]
 
 
 def replace_dev_suffix_with(version, repl):

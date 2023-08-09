@@ -373,9 +373,7 @@ def _validate_param_against_schema(schema, param, value, proto_parsing_succeeded
                     f" Hint: Value was of type '{type(value).__name__}'."
                 )
             raise MlflowException(
-                message=(
-                    message + " See the API docs for more information about request parameters."
-                ),
+                message=f"{message} See the API docs for more information about request parameters.",
                 error_code=INVALID_PARAMETER_VALUE,
             )
 
@@ -1205,9 +1203,12 @@ def _log_model():
             error_code=INVALID_PARAMETER_VALUE,
         )
 
-    missing_fields = {"artifact_path", "flavors", "utc_time_created", "run_id"} - set(model.keys())
-
-    if missing_fields:
+    if missing_fields := {
+        "artifact_path",
+        "flavors",
+        "utc_time_created",
+        "run_id",
+    } - set(model.keys()):
         raise MlflowException(
             f"Model json is missing mandatory fields: {missing_fields}",
             error_code=INVALID_PARAMETER_VALUE,
@@ -1814,8 +1815,7 @@ def _get_ajax_path(base_path):
 
 
 def _add_static_prefix(route):
-    prefix = os.environ.get(STATIC_PREFIX_ENV_VAR)
-    if prefix:
+    if prefix := os.environ.get(STATIC_PREFIX_ENV_VAR):
         return prefix + route
     return route
 

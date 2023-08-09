@@ -68,10 +68,7 @@ class RunInfo(_MLflowObject):
         self._run_name = run_name
 
     def __eq__(self, other):
-        if type(other) is type(self):
-            # TODO deep equality here?
-            return self.__dict__ == other.__dict__
-        return False
+        return self.__dict__ == other.__dict__ if type(other) is type(self) else False
 
     def _copy_with_overrides(self, status=None, end_time=None, lifecycle_stage=None, run_name=None):
         """A copy of the RunInfo with certain attributes modified."""

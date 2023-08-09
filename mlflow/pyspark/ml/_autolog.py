@@ -47,7 +47,7 @@ def _get_struct_type_by_cols(input_fields: Set[str], df_schema: t.StructType) ->
     :return:A StructType from the intersection of given columns and
             the columns present in the training dataset
     """
-    if len(input_fields) > 0:
+    if input_fields:
         return t.StructType([_field for _field in df_schema.fields if _field.name in input_fields])
     return []
 

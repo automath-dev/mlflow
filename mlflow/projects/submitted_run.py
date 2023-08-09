@@ -103,9 +103,7 @@ class LocalSubmittedRun(SubmittedRun):
         exit_code = self.command_proc.poll()
         if exit_code is None:
             return RunStatus.RUNNING
-        if exit_code == 0:
-            return RunStatus.FINISHED
-        return RunStatus.FAILED
+        return RunStatus.FINISHED if exit_code == 0 else RunStatus.FAILED
 
     def get_status(self):
         return RunStatus.to_string(self._get_status())

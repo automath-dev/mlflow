@@ -155,9 +155,11 @@ class BaseRecipe:
         subgraph = []
         if target_step.step_class == StepClass.UNKNOWN:
             return subgraph
-        for step in self._steps:
-            if target_step.step_class() == step.step_class():
-                subgraph.append(step)
+        subgraph.extend(
+            step
+            for step in self._steps
+            if target_step.step_class() == step.step_class()
+        )
         return subgraph
 
     @abc.abstractmethod

@@ -224,7 +224,7 @@ class PyFuncBackend(FlavorBackend):
             # child process of the bash process, then it cannot receive the signal sent by prctl.
             # TODO: For Windows, there's no equivalent things of Unix shell's exec. Windows also
             #  does not support prctl. We need to find an approach to address it.
-            command = "exec " + command
+            command = f"exec {command}"
 
         if self._env_manager != _EnvManager.LOCAL:
             return self.prepare_env(local_path).execute(
@@ -235,29 +235,28 @@ class PyFuncBackend(FlavorBackend):
                 preexec_fn=setup_sigterm_on_parent_death,
                 synchronous=synchronous,
             )
+        _logger.info("=== Running command '%s'", command)
+
+        if os.name != "nt":
+            command = ["bash", "-c", command]
+
+        child_proc = subprocess.Popen(
+            command,
+            env=command_env,
+            preexec_fn=setup_sigterm_on_parent_death,
+            stdout=stdout,
+            stderr=stderr,
+        )
+
+        if synchronous:
+            rc = child_proc.wait()
+            if rc != 0:
+                raise Exception(
+                    f"Command '{command}' returned non zero return code. Return code = {rc}"
+                )
+            return 0
         else:
-            _logger.info("=== Running command '%s'", command)
-
-            if os.name != "nt":
-                command = ["bash", "-c", command]
-
-            child_proc = subprocess.Popen(
-                command,
-                env=command_env,
-                preexec_fn=setup_sigterm_on_parent_death,
-                stdout=stdout,
-                stderr=stderr,
-            )
-
-            if synchronous:
-                rc = child_proc.wait()
-                if rc != 0:
-                    raise Exception(
-                        f"Command '{command}' returned non zero return code. Return code = {rc}"
-                    )
-                return 0
-            else:
-                return child_proc
+            return child_proc
 
     def serve_stdin(
         self,
@@ -391,28 +390,22 @@ class PyFuncBackend(FlavorBackend):
 def _pyfunc_entrypoint(env_manager, model_uri, install_mlflow, enable_mlserver):
     if model_uri:
         # The pyfunc image runs the same server as the Sagemaker image
-        pyfunc_entrypoint = (
-            'ENTRYPOINT ["python", "-c", "from mlflow.models import container as C;'
-            f'C._serve({env_manager!r})"]'
-        )
-    else:
-        entrypoint_code = "; ".join(
-            [
-                "from mlflow.models import container as C",
-                "from mlflow.models.container import _install_pyfunc_deps",
-                (
-                    "_install_pyfunc_deps("
-                    + '"/opt/ml/model", '
-                    + f"install_mlflow={install_mlflow}, "
-                    + f"enable_mlserver={enable_mlserver}, "
-                    + f'env_manager="{env_manager}"'
-                    + ")"
-                ),
-                f'C._serve("{env_manager}")',
-            ]
-        )
-        pyfunc_entrypoint = 'ENTRYPOINT ["python", "-c", "{entrypoint_code}"]'.format(
-            entrypoint_code=entrypoint_code.replace('"', '\\"')
-        )
-
-    return pyfunc_entrypoint
+        return f'ENTRYPOINT ["python", "-c", "from mlflow.models import container as C;C._serve({env_manager!r})"]'
+    entrypoint_code = "; ".join(
+        [
+            "from mlflow.models import container as C",
+            "from mlflow.models.container import _install_pyfunc_deps",
+            (
+                "_install_pyfunc_deps("
+                + '"/opt/ml/model", '
+                + f"install_mlflow={install_mlflow}, "
+                + f"enable_mlserver={enable_mlserver}, "
+                + f'env_manager="{env_manager}"'
+                + ")"
+            ),
+            f'C._serve("{env_manager}")',
+        ]
+    )
+    return 'ENTRYPOINT ["python", "-c", "{entrypoint_code}"]'.format(
+        entrypoint_code=entrypoint_code.replace('"', '\\"')
+    )

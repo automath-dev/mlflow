@@ -61,11 +61,13 @@ def main():
         status = session.get(
             f"https://api.github.com/repos/{repo}/commits/{args.commit_sha}/status"
         )
-        build_doc_status = next(
-            filter(lambda s: s["context"].endswith(build_doc_job_name), status["statuses"]),
+        if build_doc_status := next(
+            filter(
+                lambda s: s["context"].endswith(build_doc_job_name),
+                status["statuses"],
+            ),
             None,
-        )
-        if build_doc_status:
+        ):
             job_id = urlparse(build_doc_status["target_url"]).path.split("/")[-1]
             break
         print(f"Waiting for {build_doc_job_name} job status to be available...")
