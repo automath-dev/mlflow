@@ -142,8 +142,8 @@ class DatabricksModelsArtifactRepository(ArtifactRepository):
 
         try:
             parallel_download_subproc_env = os.environ.copy()
-            parallel_download_subproc_env.update(
-                get_databricks_env_vars(self.databricks_profile_uri)
+            parallel_download_subproc_env |= get_databricks_env_vars(
+                self.databricks_profile_uri
             )
             failed_downloads = parallelized_download_file_using_http_uri(
                 thread_pool_executor=self.chunk_thread_pool,
@@ -156,10 +156,11 @@ class DatabricksModelsArtifactRepository(ArtifactRepository):
                 env=parallel_download_subproc_env,
                 headers=headers,
             )
-            download_errors = [
-                e for e in failed_downloads.values() if e["error_status_code"] not in (401, 403)
-            ]
-            if download_errors:
+            if download_errors := [
+                e
+                for e in failed_downloads.values()
+                if e["error_status_code"] not in (401, 403)
+            ]:
                 raise MlflowException(
                     f"Failed to download artifact {dst_run_relative_artifact_path}: "
                     f"{download_errors}"

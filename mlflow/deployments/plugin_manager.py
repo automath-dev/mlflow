@@ -113,10 +113,10 @@ class DeploymentPlugins(PluginManager):
             elif (
                 inspect.isclass(obj)
                 and issubclass(obj, BaseDeploymentClient)
-                and not obj == BaseDeploymentClient
+                and obj != BaseDeploymentClient
             ):
                 deployment_classes.append(name)
-        if len(expected) > 0:
+        if expected:
             raise MlflowException(
                 f"Plugin registered for the target {item} does not have all "
                 "the required interfaces. Raise an issue with the "
@@ -131,7 +131,7 @@ class DeploymentPlugins(PluginManager):
                 " the plugin developers. "
                 f"Classes found are {deployment_classes}"
             )
-        elif len(deployment_classes) == 0:
+        elif not deployment_classes:
             raise MlflowException(
                 f"Plugin registered for the target {item} has no child class"
                 " of BaseDeploymentClient. Raise an issue with the "

@@ -53,7 +53,7 @@ def register_artifact_dataset_sources():
                 return "".join([part.capitalize() for part in parts])
 
             source_name_prefix = camelcase_scheme(scheme)
-            dataset_source_name = source_name_prefix + "ArtifactDatasetSource"
+            dataset_source_name = f"{source_name_prefix}ArtifactDatasetSource"
 
         try:
             registered_source_schemes.add(scheme)
@@ -71,7 +71,7 @@ def register_artifact_dataset_sources():
 def _create_dataset_source_for_artifact_repo(scheme: str, dataset_source_name: str):
     from mlflow.data.filesystem_dataset_source import FileSystemDatasetSource
 
-    if scheme in ["", "file"]:
+    if scheme in {"", "file"}:
         source_type = "local"
         class_docstring = "Represents the source of a dataset stored on the local filesystem."
     else:
@@ -82,6 +82,8 @@ def _create_dataset_source_for_artifact_repo(scheme: str, dataset_source_name: s
         )
 
     DatasetForArtifactRepoSourceType = TypeVar(dataset_source_name)
+
+
 
     @experimental
     class ArtifactRepoSource(FileSystemDatasetSource):
@@ -128,9 +130,8 @@ def _create_dataset_source_for_artifact_repo(scheme: str, dataset_source_name: s
             try:
                 if is_local_source_type:
                     return is_local_uri(str(raw_source), is_tracking_or_registry_uri=False)
-                else:
-                    parsed_source = urlparse(str(raw_source))
-                    return parsed_source.scheme == scheme
+                parsed_source = urlparse(str(raw_source))
+                return parsed_source.scheme == scheme
             except Exception:
                 return False
 
@@ -156,6 +157,7 @@ def _create_dataset_source_for_artifact_repo(scheme: str, dataset_source_name: s
                 )
 
             return cls(uri=uri)
+
 
     ArtifactRepoSource.__name__ = dataset_source_name
     ArtifactRepoSource.__qualname__ = dataset_source_name

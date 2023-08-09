@@ -27,6 +27,7 @@ implement mutual exclusion manually.
 
 For a lower level API, see the :py:mod:`mlflow.client` module.
 """
+
 import contextlib
 from mlflow.version import VERSION as __version__  # pylint: disable=unused-import
 from mlflow.utils.logging_utils import _configure_mlflow_loggers
@@ -49,7 +50,7 @@ from mlflow import data  # pylint: disable=unused-import
 
 # model flavors
 _model_flavors_supported = []
-try:
+with contextlib.suppress(ImportError):
     # pylint: disable=unused-import
     from mlflow import catboost
     from mlflow import fastai
@@ -109,11 +110,6 @@ try:
         "sentence_transformers",
         "johnsnowlabs",
     ]
-except ImportError:
-    # We are conditional loading these commands since the skinny client does
-    # not support them due to the pandas and numpy dependencies of MLflow Models
-    pass
-
 _configure_mlflow_loggers(root_module_name=__name__)
 
 # TODO: Comment out this block when we deprecate support for python 3.8.

@@ -119,7 +119,7 @@ def _get_docker_image_uri(repository_uri, work_dir):
     repository_uri = repository_uri if repository_uri else "docker-project"
     # Optionally include first 7 digits of git SHA in tag name, if available.
     git_commit = get_git_commit(work_dir)
-    version_string = ":" + git_commit[:7] if git_commit else ""
+    version_string = f":{git_commit[:7]}" if git_commit else ""
     return repository_uri + version_string
 
 
@@ -150,7 +150,7 @@ def get_docker_tracking_cmd_and_envs(tracking_uri):
     if local_path is not None:
         cmds = ["-v", f"{local_path}:{_MLFLOW_DOCKER_TRACKING_DIR_PATH}"]
         env_vars[MLFLOW_TRACKING_URI.name] = container_tracking_uri
-    env_vars.update(get_databricks_env_vars(tracking_uri))
+    env_vars |= get_databricks_env_vars(tracking_uri)
     return cmds, env_vars
 
 
@@ -158,12 +158,14 @@ def _get_local_uri_or_none(uri):
     if uri == "databricks":
         return None, None
     parsed_uri = urllib.parse.urlparse(uri)
-    if not parsed_uri.netloc and parsed_uri.scheme in ("", "file", "sqlite"):
-        path = urllib.request.url2pathname(parsed_uri.path)
-        if parsed_uri.scheme == "sqlite":
-            uri = file_utils.path_to_local_sqlite_uri(_MLFLOW_DOCKER_TRACKING_DIR_PATH)
-        else:
-            uri = file_utils.path_to_local_file_uri(_MLFLOW_DOCKER_TRACKING_DIR_PATH)
-        return path, uri
-    else:
+    if parsed_uri.netloc or parsed_uri.scheme not in ("", "file", "sqlite"):
         return None, None
+    path = urllib.request.url2pathname(parsed_uri.path)
+    uri = (
+        file_utils.path_to_local_sqlite_uri(_MLFLOW_DOCKER_TRACKING_DIR_PATH)
+        if parsed_uri.scheme == "sqlite"
+        else file_utils.path_to_local_file_uri(
+            _MLFLOW_DOCKER_TRACKING_DIR_PATH
+        )
+    )
+    return path, uri

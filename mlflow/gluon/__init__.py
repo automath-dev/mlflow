@@ -91,11 +91,10 @@ def load_model(model_uri, ctx, dst_path=None):
         return gluon.SymbolBlock.imports(
             model_arch_path, input_names=["data"], param_file=model_params_path, ctx=ctx
         )
-    else:
-        symbol = sym.load(model_arch_path)
-        inputs = sym.var("data", dtype="float32")
-        net = gluon.SymbolBlock(symbol, inputs)
-        net.collect_params().load(model_params_path, ctx)
+    symbol = sym.load(model_arch_path)
+    inputs = sym.var("data", dtype="float32")
+    net = gluon.SymbolBlock(symbol, inputs)
+    net.collect_params().load(model_params_path, ctx)
     return net
 
 

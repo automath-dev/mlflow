@@ -281,9 +281,7 @@ class Model:
         self.__dict__.update(kwargs)
 
     def __eq__(self, other):
-        if not isinstance(other, Model):
-            return False
-        return self.__dict__ == other.__dict__
+        return self.__dict__ == other.__dict__ if isinstance(other, Model) else False
 
     def get_input_schema(self):
         """
@@ -435,8 +433,7 @@ class Model:
     def to_dict(self):
         """Serialize the model to a dictionary."""
         res = {k: v for k, v in self.__dict__.items() if not k.startswith("_")}
-        databricks_runtime = get_databricks_runtime()
-        if databricks_runtime:
+        if databricks_runtime := get_databricks_runtime():
             res["databricks_runtime"] = databricks_runtime
         if self.signature is not None:
             res["signature"] = self.signature.to_dict()

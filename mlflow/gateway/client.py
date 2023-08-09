@@ -298,15 +298,14 @@ class MlflowGatewayClient:
         try:
             return self._call_endpoint("POST", query_route, data).json()
         except MlflowException as e:
-            if isinstance(e.__cause__, requests.exceptions.Timeout):
-                timeout_message = (
-                    "The provider has timed out while generating a response to your "
-                    "query. Please evaluate the available parameters for the query "
-                    "that you are submitting. Some parameter values and inputs can "
-                    "increase the computation time beyond the allowable route "
-                    f"timeout of {MLFLOW_GATEWAY_CLIENT_QUERY_TIMEOUT_SECONDS} "
-                    "seconds."
-                )
-                raise MlflowException(message=timeout_message, error_code=BAD_REQUEST)
-            else:
+            if not isinstance(e.__cause__, requests.exceptions.Timeout):
                 raise e
+            timeout_message = (
+                "The provider has timed out while generating a response to your "
+                "query. Please evaluate the available parameters for the query "
+                "that you are submitting. Some parameter values and inputs can "
+                "increase the computation time beyond the allowable route "
+                f"timeout of {MLFLOW_GATEWAY_CLIENT_QUERY_TIMEOUT_SECONDS} "
+                "seconds."
+            )
+            raise MlflowException(message=timeout_message, error_code=BAD_REQUEST)

@@ -52,7 +52,7 @@ def compute_numpy_digest(features, targets=None) -> str:
 
     def hash_array(array):
         flattened_array = array.flatten()
-        trimmed_array = flattened_array[0:MAX_ROWS]
+        trimmed_array = flattened_array[:MAX_ROWS]
         try:
             hashable_elements.append(pd.util.hash_array(trimmed_array))
         except TypeError:
@@ -95,7 +95,7 @@ def compute_tensorflow_dataset_digest(dataset, targets=None) -> str:
             return
         flat_element = tf.nest.flatten(element)
         flattened_array = np.concatenate([x.flatten() for x in flat_element])
-        trimmed_array = flattened_array[0:MAX_ROWS]
+        trimmed_array = flattened_array[:MAX_ROWS]
         try:
             hashable_elements.append(pd.util.hash_array(trimmed_array))
         except TypeError:

@@ -174,7 +174,7 @@ def train(USE_PRETRAINED_MODEL=False):
                     "Epoch {}/{} => Train Loss: {:.2f}".format(epoch + 1, num_epochs, loss.item())
                 )
                 mlflow.log_metric(
-                    "Epoch {} Loss".format(str(epoch + 1)),
+                    f"Epoch {str(epoch + 1)} Loss",
                     float(loss.item()),
                     step=epoch,
                 )
@@ -256,7 +256,7 @@ def layer_conductance(net, test_input_tensor):
     cond_vals = cond.attribute(test_input_tensor, target=1)
     cond_vals = cond_vals.detach().numpy()
     # We can begin by visualizing the average conductance for each neuron.
-    neuron_names = ["neuron " + str(x) for x in range(12)]
+    neuron_names = [f"neuron {str(x)}" for x in range(12)]
     avg_neuron_imp, neuron_imp_dict = visualize_importances(
         neuron_names,
         np.mean(cond_vals, axis=0),
@@ -303,10 +303,11 @@ def neuron_conductance(net, test_input_tensor, neuron_selector=None):
     neuron_cond, _ = visualize_importances(
         feature_names,
         neuron_cond_vals.mean(dim=0).detach().numpy(),
-        title="Average Feature Importances for Neuron {}".format(neuron_selector),
+        title=f"Average Feature Importances for Neuron {neuron_selector}",
     )
     mlflow.log_text(
-        str(neuron_cond), "Avg_Feature_Importances_Neuron_" + str(neuron_selector) + ".txt"
+        str(neuron_cond),
+        f"Avg_Feature_Importances_Neuron_{neuron_selector}.txt",
     )
 
 

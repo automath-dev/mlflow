@@ -76,9 +76,7 @@ class RFuncBackend(FlavorBackend):
             raise Exception("RBackend does not support redirect stdout/stderr.")
 
         model_path = _download_artifact_from_uri(model_uri)
-        command = "mlflow::mlflow_rfunc_serve('{}', port = {}, host = '{}')".format(
-            quote(model_path), port, host
-        )
+        command = f"mlflow::mlflow_rfunc_serve('{quote(model_path)}', port = {port}, host = '{host}')"
         _execute(command)
 
     def can_score_model(self):

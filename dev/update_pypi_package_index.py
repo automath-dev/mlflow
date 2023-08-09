@@ -50,7 +50,7 @@ def main(args):
     parser.feed(raw_index_html)
 
     formatted_package_index = {
-        "index_date": datetime.today().strftime("%Y-%m-%d"),
+        "index_date": datetime.now().strftime("%Y-%m-%d"),
         "package_names": list(package_names),
     }
 

@@ -114,8 +114,9 @@ def convert_to_dataset_feature_statistics(
         if feat.type in (fs_proto.INT, fs_proto.FLOAT):
             feat_stats = feat.num_stats
 
-            converter = datetime_and_timedelta_converter(current_column_value.dtype)
-            if converter:
+            if converter := datetime_and_timedelta_converter(
+                current_column_value.dtype
+            ):
                 date_time_converted = converter(current_column_value)
                 current_column_value = pd.DataFrame(date_time_converted)[0]
                 kwargs = (
@@ -136,17 +137,15 @@ def convert_to_dataset_feature_statistics(
             feat_stats.common_stats.CopyFrom(compute_common_stats(current_column_value))
 
             if key in quantiles:
-                equal_width_hist = histogram_generator.generate_equal_width_histogram(
+                if equal_width_hist := histogram_generator.generate_equal_width_histogram(
                     quantiles=quantiles[key].to_numpy(),
                     num_buckets=10,
                     total_freq=feat_stats.common_stats.num_non_missing,
-                )
-                if equal_width_hist:
+                ):
                     feat_stats.histograms.append(equal_width_hist)
-                equal_height_hist = histogram_generator.generate_equal_height_histogram(
+                if equal_height_hist := histogram_generator.generate_equal_height_histogram(
                     quantiles=quantiles[key].to_numpy(), num_buckets=10
-                )
-                if equal_height_hist:
+                ):
                     feat_stats.histograms.append(equal_height_hist)
         elif feat.type == fs_proto.STRING:
             is_current_column_boolean_type = False
@@ -265,8 +264,9 @@ def construct_facets_html(
         <facets-overview id="facets" proto-input="{protostr}" compare-mode="{compare}"></facets-overview>
         </div>
     """
-    html = html_template.format(protostr=protostr, compare=compare, polyfills_code=polyfills_code)
-    return html
+    return html_template.format(
+        protostr=protostr, compare=compare, polyfills_code=polyfills_code
+    )
 
 
 def get_html(inputs: Union[pd.DataFrame, Iterable[Tuple[str, pd.DataFrame]]]) -> str:
@@ -285,5 +285,4 @@ def get_html(inputs: Union[pd.DataFrame, Iterable[Tuple[str, pd.DataFrame]]]) ->
         proto = convert_to_comparison_proto(inputs)
         compare = True
 
-    html = construct_facets_html(proto, compare=compare)
-    return html
+    return construct_facets_html(proto, compare=compare)

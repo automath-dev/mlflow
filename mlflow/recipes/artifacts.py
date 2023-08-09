@@ -62,8 +62,7 @@ class ModelArtifact(Artifact):
         return self._path
 
     def load(self):
-        run_id = read_run_id(self._recipe_root)
-        if run_id:
+        if run_id := read_run_id(self._recipe_root):
             with _use_tracking_uri(self._tracking_uri), chdir(self._recipe_root):
                 return mlflow.pyfunc.load_model(f"runs:/{run_id}/{self._step_name}/model")
         log_artifact_not_found_warning(self._name, self._step_name)
@@ -85,8 +84,7 @@ class TransformerArtifact(Artifact):
         return self._path
 
     def load(self):
-        run_id = read_run_id(self._recipe_root)
-        if run_id:
+        if run_id := read_run_id(self._recipe_root):
             with _use_tracking_uri(self._tracking_uri), chdir(self._recipe_root):
                 return mlflow.sklearn.load_model(f"runs:/{run_id}/{self._step_name}/transformer")
         log_artifact_not_found_warning(self._name, self._step_name)
@@ -108,8 +106,7 @@ class RunArtifact(Artifact):
         return self._path
 
     def load(self):
-        run_id = read_run_id(self._recipe_root)
-        if run_id:
+        if run_id := read_run_id(self._recipe_root):
             with _use_tracking_uri(self._tracking_uri), chdir(self._recipe_root):
                 return MlflowClient().get_run(run_id)
         log_artifact_not_found_warning(self._name, self._step_name)

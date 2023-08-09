@@ -34,7 +34,7 @@ def push_image_to_registry(image_tag):
 def _get_kubernetes_job_definition(
     project_name, image_tag, image_digest, command, env_vars, job_template
 ):
-    container_image = image_tag + "@" + image_digest
+    container_image = f"{image_tag}@{image_digest}"
     timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M-%S-%f")
     job_name = f"{project_name}-{timestamp}"
     _logger.info("=== Creating Job %s ===", job_name)

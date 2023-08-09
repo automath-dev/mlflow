@@ -72,30 +72,29 @@ class RegisterStep(BaseStep):
             MLFLOW_RECIPE_TEMPLATE_NAME: self.step_config["recipe"],
         }
         self.model_uri = f"runs:/{run_id}/{artifact_path}"
-        if model_validation == "VALIDATED" or (
-            model_validation == "UNKNOWN" and self.allow_non_validated_model
+        if model_validation != "VALIDATED" and (
+            model_validation != "UNKNOWN" or not self.allow_non_validated_model
         ):
-            if self.registry_uri:
-                mlflow.set_registry_uri(self.registry_uri)
-            self.model_details = mlflow.register_model(
-                model_uri=self.model_uri,
-                name=self.register_model_name,
-                tags=tags,
-                await_registration_for=DEFAULT_AWAIT_MAX_SLEEP_SECONDS,
-            )
-            self.version = self.model_details.version
-            registered_model_info = RegisteredModelVersionInfo(
-                name=self.register_model_name, version=self.version
-            )
-            registered_model_info.to_json(
-                path=str(Path(output_directory) / _REGISTERED_MV_INFO_FILE)
-            )
-        else:
             raise MlflowException(
                 f"Model registration on {self.model_uri} failed because it "
                 "is not validated. Bypass by setting allow_non_validated_model to True. "
             )
 
+        if self.registry_uri:
+            mlflow.set_registry_uri(self.registry_uri)
+        self.model_details = mlflow.register_model(
+            model_uri=self.model_uri,
+            name=self.register_model_name,
+            tags=tags,
+            await_registration_for=DEFAULT_AWAIT_MAX_SLEEP_SECONDS,
+        )
+        self.version = self.model_details.version
+        registered_model_info = RegisteredModelVersionInfo(
+            name=self.register_model_name, version=self.version
+        )
+        registered_model_info.to_json(
+            path=str(Path(output_directory) / _REGISTERED_MV_INFO_FILE)
+        )
         card = self._build_card(run_id)
         card.save_as_html(output_directory)
         self._log_step_card(run_id, self.name)
@@ -168,7 +167,7 @@ class RegisterStep(BaseStep):
     def from_recipe_config(cls, recipe_config, recipe_root):
         step_config = {}
         if recipe_config.get("steps", {}).get("register") is not None:
-            step_config.update(recipe_config.get("steps", {}).get("register"))
+            step_config |= recipe_config.get("steps", {}).get("register")
         step_config["recipe"] = recipe_config.get("recipe")
         if recipe_config.get("model_registry", {}).get("registry_uri") is not None:
             step_config["registry_uri"] = recipe_config.get("model_registry", {}).get(

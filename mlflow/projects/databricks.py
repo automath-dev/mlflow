@@ -251,8 +251,7 @@ class DatabricksJobRunner:
         }
         _logger.info("=== Submitting a run to execute the MLflow project... ===")
         run_submit_res = self._jobs_runs_submit(req_body_json)
-        databricks_run_id = run_submit_res["run_id"]
-        return databricks_run_id
+        return run_submit_res["run_id"]
 
     def run_databricks(
         self,
@@ -282,9 +281,7 @@ class DatabricksJobRunner:
         run_state = self.get_run_result_state(databricks_run_id)
         if run_state is None:
             return RunStatus.RUNNING
-        if run_state == "SUCCESS":
-            return RunStatus.FINISHED
-        return RunStatus.FAILED
+        return RunStatus.FINISHED if run_state == "SUCCESS" else RunStatus.FAILED
 
     def get_status(self, databricks_run_id):
         return RunStatus.to_string(self._get_status(databricks_run_id))
@@ -316,9 +313,7 @@ class DatabricksJobRunner:
 
 def _get_tracking_uri_for_run():
     uri = tracking.get_tracking_uri()
-    if uri.startswith("databricks"):
-        return "databricks"
-    return uri
+    return "databricks" if uri.startswith("databricks") else uri
 
 
 def _get_cluster_mlflow_run_cmd(project_dir, run_id, entry_point, parameters, env_manager):

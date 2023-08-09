@@ -51,24 +51,23 @@ def get_recipe_config(recipe_root_path: str = None, profile: str = None) -> Dict
     recipe_root_path = recipe_root_path or get_recipe_root_path()
     _verify_is_recipe_root_directory(recipe_root_path=recipe_root_path)
     try:
-        if profile:
-            # Jinja expects template names in posixpath format relative to environment root,
-            # so use posixpath to construct the relative path here.
-            profile_relpath = posixpath.join(_RECIPE_PROFILE_DIR, f"{profile}.yaml")
-            profile_file_path = os.path.join(
-                recipe_root_path, _RECIPE_PROFILE_DIR, f"{profile}.yaml"
-            )
-            if not os.path.exists(profile_file_path):
-                raise MlflowException(
-                    "Did not find the YAML configuration file for the specified profile"
-                    f" '{profile}' at expected path '{profile_file_path}'.",
-                    error_code=INVALID_PARAMETER_VALUE,
-                )
-            return render_and_merge_yaml(
-                recipe_root_path, _RECIPE_CONFIG_FILE_NAME, profile_relpath
-            )
-        else:
+        if not profile:
             return read_yaml(recipe_root_path, _RECIPE_CONFIG_FILE_NAME)
+        # Jinja expects template names in posixpath format relative to environment root,
+        # so use posixpath to construct the relative path here.
+        profile_relpath = posixpath.join(_RECIPE_PROFILE_DIR, f"{profile}.yaml")
+        profile_file_path = os.path.join(
+            recipe_root_path, _RECIPE_PROFILE_DIR, f"{profile}.yaml"
+        )
+        if not os.path.exists(profile_file_path):
+            raise MlflowException(
+                "Did not find the YAML configuration file for the specified profile"
+                f" '{profile}' at expected path '{profile_file_path}'.",
+                error_code=INVALID_PARAMETER_VALUE,
+            )
+        return render_and_merge_yaml(
+            recipe_root_path, _RECIPE_CONFIG_FILE_NAME, profile_relpath
+        )
     except MlflowException:
         raise
     except Exception as e:

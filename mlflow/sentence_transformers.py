@@ -305,7 +305,7 @@ def load_model(model_uri: str, dst_path: str = None):
 
     import sentence_transformers
 
-    model_uri = str(model_uri)
+    model_uri = model_uri
 
     local_model_path = _download_artifact_from_uri(artifact_uri=model_uri, output_path=dst_path)
 

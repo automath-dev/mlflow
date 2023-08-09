@@ -25,22 +25,18 @@ def generate_data(location_data, start_dt) -> pd.DataFrame:
     start = datetime.strptime(start_dt, "%Y-%m-%d %H:%M:%S")
     dates = pd.date_range(start=start, periods=len(raw_data), freq="H").values
 
-    generated_listing = []
-
-    for country, city in location_data:
-        generated_listing.append(
-            pd.DataFrame(
-                {
-                    "watts": np.random.uniform(0.3, 0.8) * raw_data,
-                    "datetime": dates,
-                    "country": country,
-                    "city": city,
-                }
-            )
+    generated_listing = [
+        pd.DataFrame(
+            {
+                "watts": np.random.uniform(0.3, 0.8) * raw_data,
+                "datetime": dates,
+                "country": country,
+                "city": city,
+            }
         )
-
-    output = pd.concat(generated_listing).reset_index().drop("index", axis=1)
-    return output
+        for country, city in location_data
+    ]
+    return pd.concat(generated_listing).reset_index().drop("index", axis=1)
 
 
 def grouped_prophet_example(locations, start_dt, artifact_path):

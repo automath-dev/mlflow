@@ -70,12 +70,9 @@ def _serve(env_manager):
     model_config_path = os.path.join(MODEL_PATH, MLMODEL_FILE_NAME)
     m = Model.load(model_config_path)
 
-    if DEPLOYMENT_CONFIG_KEY_FLAVOR_NAME in os.environ:
-        serving_flavor = os.environ[DEPLOYMENT_CONFIG_KEY_FLAVOR_NAME]
-    else:
-        # Older versions of mlflow may not specify a deployment configuration
-        serving_flavor = pyfunc.FLAVOR_NAME
-
+    serving_flavor = os.environ.get(
+        DEPLOYMENT_CONFIG_KEY_FLAVOR_NAME, pyfunc.FLAVOR_NAME
+    )
     if serving_flavor == mleap.FLAVOR_NAME:
         _serve_mleap()
     elif pyfunc.FLAVOR_NAME in m.flavors:
@@ -145,11 +142,11 @@ def _serve_pyfunc(model, env_manager):
     # option to disable manually nginx. The default behavior is to enable nginx.
     disable_nginx = os.getenv(DISABLE_NGINX, "false").lower() == "true"
     enable_mlserver = os.getenv(ENABLE_MLSERVER, "false").lower() == "true"
-    disable_env_creation = os.environ.get(DISABLE_ENV_CREATION) == "true"
-
     conf = model.flavors[pyfunc.FLAVOR_NAME]
     bash_cmds = []
     if pyfunc.ENV in conf:
+        disable_env_creation = os.environ.get(DISABLE_ENV_CREATION) == "true"
+
         if not disable_env_creation:
             _install_pyfunc_deps(
                 MODEL_PATH,
@@ -163,11 +160,7 @@ def _serve_pyfunc(model, env_manager):
             bash_cmds.append("source /opt/activate")
     procs = []
 
-    start_nginx = True
-    if disable_nginx or enable_mlserver:
-        start_nginx = False
-
-    if start_nginx:
+    if start_nginx := not disable_nginx and not enable_mlserver:
         nginx_conf = resource_filename(
             mlflow.models.__name__, "container/scoring_server/nginx.conf"
         )

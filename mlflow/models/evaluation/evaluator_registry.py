@@ -23,9 +23,7 @@ class ModelEvaluatorRegistry:
                 self.register(entrypoint.name, entrypoint.load())
             except (AttributeError, ImportError) as exc:
                 warnings.warn(
-                    'Failure attempting to register model evaluator for scheme "{}": {}'.format(
-                        entrypoint.name, str(exc)
-                    ),
+                    f'Failure attempting to register model evaluator for scheme "{entrypoint.name}": {str(exc)}',
                     stacklevel=2,
                 )
 
@@ -36,10 +34,7 @@ class ModelEvaluatorRegistry:
         evaluator_cls = self._registry.get(evaluator_name)
         if evaluator_cls is None:
             raise MlflowException(
-                "Could not find a registered model evaluator for: {}. "
-                "Currently registered evaluator names are: {}".format(
-                    evaluator_name, list(self._registry.keys())
-                )
+                f"Could not find a registered model evaluator for: {evaluator_name}. Currently registered evaluator names are: {list(self._registry.keys())}"
             )
         return evaluator_cls()
 

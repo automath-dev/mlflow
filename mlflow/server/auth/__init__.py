@@ -375,26 +375,36 @@ def get_before_request_handler(request_class):
 
 BEFORE_REQUEST_VALIDATORS = {
     (http_path, method): handler
-    for http_path, handler, methods in get_endpoints(get_before_request_handler)
+    for http_path, handler, methods in get_endpoints(
+        get_before_request_handler
+    )
     for method in methods
+} | {
+    (GET_USER, "GET"): validate_can_read_user,
+    (UPDATE_USER_PASSWORD, "PATCH"): validate_can_update_user_password,
+    (UPDATE_USER_ADMIN, "PATCH"): validate_can_update_user_admin,
+    (DELETE_USER, "DELETE"): validate_can_delete_user,
+    (GET_EXPERIMENT_PERMISSION, "GET"): validate_can_manage_experiment,
+    (CREATE_EXPERIMENT_PERMISSION, "POST"): validate_can_manage_experiment,
+    (UPDATE_EXPERIMENT_PERMISSION, "PATCH"): validate_can_manage_experiment,
+    (DELETE_EXPERIMENT_PERMISSION, "DELETE"): validate_can_manage_experiment,
+    (
+        GET_REGISTERED_MODEL_PERMISSION,
+        "GET",
+    ): validate_can_manage_registered_model,
+    (
+        CREATE_REGISTERED_MODEL_PERMISSION,
+        "POST",
+    ): validate_can_manage_registered_model,
+    (
+        UPDATE_REGISTERED_MODEL_PERMISSION,
+        "PATCH",
+    ): validate_can_manage_registered_model,
+    (
+        DELETE_REGISTERED_MODEL_PERMISSION,
+        "DELETE",
+    ): validate_can_manage_registered_model,
 }
-
-BEFORE_REQUEST_VALIDATORS.update(
-    {
-        (GET_USER, "GET"): validate_can_read_user,
-        (UPDATE_USER_PASSWORD, "PATCH"): validate_can_update_user_password,
-        (UPDATE_USER_ADMIN, "PATCH"): validate_can_update_user_admin,
-        (DELETE_USER, "DELETE"): validate_can_delete_user,
-        (GET_EXPERIMENT_PERMISSION, "GET"): validate_can_manage_experiment,
-        (CREATE_EXPERIMENT_PERMISSION, "POST"): validate_can_manage_experiment,
-        (UPDATE_EXPERIMENT_PERMISSION, "PATCH"): validate_can_manage_experiment,
-        (DELETE_EXPERIMENT_PERMISSION, "DELETE"): validate_can_manage_experiment,
-        (GET_REGISTERED_MODEL_PERMISSION, "GET"): validate_can_manage_registered_model,
-        (CREATE_REGISTERED_MODEL_PERMISSION, "POST"): validate_can_manage_registered_model,
-        (UPDATE_REGISTERED_MODEL_PERMISSION, "PATCH"): validate_can_manage_registered_model,
-        (DELETE_REGISTERED_MODEL_PERMISSION, "DELETE"): validate_can_manage_registered_model,
-    }
-)
 
 
 def _is_proxy_artifact_path(path: str) -> bool:

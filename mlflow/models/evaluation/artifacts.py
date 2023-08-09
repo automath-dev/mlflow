@@ -76,8 +76,7 @@ class TextEvaluationArtifact(EvaluationArtifact):
             f.write(self._content)
 
     def _load_content_from_file(self, local_artifact_path):
-        with open(local_artifact_path) as f:
-            self._content = f.read()
+        self._content = pathlib.Path(local_artifact_path).read_text()
         return self._content
 
 

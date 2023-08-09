@@ -35,8 +35,7 @@ class Net(nn.Module):
         x = F.relu(x)
         x = self.dropout2(x)
         x = self.fc2(x)
-        output = F.log_softmax(x, dim=1)
-        return output
+        return F.log_softmax(x, dim=1)
 
 
 def train(args, model, device, train_loader, optimizer, epoch):
@@ -159,8 +158,8 @@ def main():
     test_kwargs = {"batch_size": args.test_batch_size}
     if use_cuda:
         cuda_kwargs = {"num_workers": 1, "pin_memory": True, "shuffle": True}
-        train_kwargs.update(cuda_kwargs)
-        test_kwargs.update(cuda_kwargs)
+        train_kwargs |= cuda_kwargs
+        test_kwargs |= cuda_kwargs
 
     transform = transforms.Compose(
         [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
@@ -190,7 +189,7 @@ def main():
             actual = test_target[0].item()
             predicted = torch.argmax(prediction).item()
             print(
-                "\nPREDICTION RESULT: ACTUAL: {}, PREDICTED: {}".format(str(actual), str(predicted))
+                f"\nPREDICTION RESULT: ACTUAL: {str(actual)}, PREDICTED: {str(predicted)}"
             )
 
 

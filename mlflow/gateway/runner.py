@@ -18,7 +18,7 @@ def monitor_config(config_path: str) -> Generator[None, None, None]:
         prev_config = f.read()
 
     for changes in watch(os.path.dirname(config_path)):
-        if not any((path == config_path) for _, path in changes):
+        if all(path != config_path for _, path in changes):
             continue
 
         if not os.path.exists(config_path):

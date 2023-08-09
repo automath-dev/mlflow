@@ -21,13 +21,13 @@ _DEFAULT_USER_ID = "unknown"
 
 class MLflowTrackingRestApi:
     def __init__(self, hostname, port, experiment_id):
-        self.base_url = "http://" + hostname + ":" + str(port) + "/api/2.0/mlflow"
+        self.base_url = f"http://{hostname}:{str(port)}/api/2.0/mlflow"
         self.experiment_id = experiment_id
         self.run_id = self.create_run()
 
     def create_run(self):
         """Create a new run for tracking."""
-        url = self.base_url + "/runs/create"
+        url = f"{self.base_url}/runs/create"
         # user_id is deprecated and will be removed from the API in a future release
         payload = {
             "experiment_id": self.experiment_id,
@@ -44,23 +44,20 @@ class MLflowTrackingRestApi:
 
     def search_experiments(self):
         """Get all experiments."""
-        url = self.base_url + "/experiments/search"
+        url = f"{self.base_url}/experiments/search"
         r = requests.get(url)
-        experiments = None
-        if r.status_code == 200:
-            experiments = r.json()["experiments"]
-        return experiments
+        return r.json()["experiments"] if r.status_code == 200 else None
 
     def log_param(self, param):
         """Log a parameter dict for the given run."""
-        url = self.base_url + "/runs/log-parameter"
+        url = f"{self.base_url}/runs/log-parameter"
         payload = {"run_id": self.run_id, "key": param["key"], "value": param["value"]}
         r = requests.post(url, json=payload)
         return r.status_code
 
     def log_metric(self, metric):
         """Log a metric dict for the given run."""
-        url = self.base_url + "/runs/log-metric"
+        url = f"{self.base_url}/runs/log-metric"
         payload = {
             "run_id": self.run_id,
             "key": metric["key"],
@@ -118,7 +115,7 @@ if __name__ == "__main__":
     status_code = mlflow_rest.log_param(param)
     if status_code == 200:
         print(
-            "Successfully logged parameter: {} with value: {}".format(param["key"], param["value"])
+            f'Successfully logged parameter: {param["key"]} with value: {param["value"]}'
         )
     else:
         print("Logging parameter failed!")
@@ -132,9 +129,7 @@ if __name__ == "__main__":
     status_code = mlflow_rest.log_metric(metric)
     if status_code == 200:
         print(
-            "Successfully logged parameter: {} with value: {}".format(
-                metric["key"], metric["value"]
-            )
+            f'Successfully logged parameter: {metric["key"]} with value: {metric["value"]}'
         )
     else:
         print("Logging metric failed!")

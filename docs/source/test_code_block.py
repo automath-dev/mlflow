@@ -65,7 +65,7 @@ class TestCodeBlockDirective(CodeBlock):
         obj_path = source.split(":docstring of ")[1]
         code_block_location = get_code_block_location(obj_path, lineno_in_docstring, repo_root)
         name = re.sub("[\._]+", "_", obj_path).strip("")
-        filename = "test_{}_{}.py".format(name, lineno_in_docstring)
+        filename = f"test_{name}_{lineno_in_docstring}.py"
         content = textwrap.indent("\n".join(self.content), " " * 4)
         code = "\n".join(
             [

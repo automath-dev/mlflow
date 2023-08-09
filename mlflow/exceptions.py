@@ -91,7 +91,7 @@ class MlflowException(Exception):
 
     def serialize_as_json(self):
         exception_dict = {"error_code": self.error_code, "message": self.message}
-        exception_dict.update(self.json_kwargs)
+        exception_dict |= self.json_kwargs
         return json.dumps(exception_dict)
 
     def get_http_status_code(self):
@@ -115,10 +115,7 @@ class RestException(MlflowException):
 
     def __init__(self, json):
         error_code = json.get("error_code", ErrorCode.Name(INTERNAL_ERROR))
-        message = "{}: {}".format(
-            error_code,
-            json["message"] if "message" in json else "Response: " + str(json),
-        )
+        message = f'{error_code}: {json["message"] if "message" in json else f"Response: {str(json)}"}'
         super().__init__(message, error_code=ErrorCode.Value(error_code))
         self.json = json
 

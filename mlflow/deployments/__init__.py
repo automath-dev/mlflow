@@ -62,11 +62,10 @@ class PredictionsResponse(dict):
         :return: If ``path`` is unspecified, the JSON representation of the MLflow Predictions
                  Response. Else, None.
         """
-        if path is not None:
-            with open(path, "w") as f:
-                json.dump(dict(self), f)
-        else:
+        if path is None:
             return json.dumps(dict(self))
+        with open(path, "w") as f:
+            json.dump(dict(self), f)
 
     @classmethod
     def from_json(cls, json_str):

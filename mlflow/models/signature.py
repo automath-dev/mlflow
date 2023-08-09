@@ -64,13 +64,11 @@ class ModelSignature:
             raise TypeError(f"inputs must be mlflow.models.signature.Schema, got '{type(inputs)}'")
         if outputs is not None and not isinstance(outputs, Schema):
             raise TypeError(
-                "outputs must be either None or mlflow.models.signature.Schema, "
-                "got '{}'".format(type(inputs))
+                f"outputs must be either None or mlflow.models.signature.Schema, got '{type(inputs)}'"
             )
         if params and not isinstance(params, ParamSchema):
             raise TypeError(
-                "If params are provided, they must by of type mlflow.models.signature.ParamSchema. "
-                "Got '{}'".format(type(params))
+                f"If params are provided, they must by of type mlflow.models.signature.ParamSchema. Got '{type(params)}'"
             )
         self.inputs = inputs
         self.outputs = outputs
@@ -110,11 +108,10 @@ class ModelSignature:
             outputs = Schema.from_json(signature_dict["outputs"])
         else:
             outputs = None
-        if (params := signature_dict.get("params")) is not None:
-            params = ParamSchema.from_json(params)
-            return cls(inputs, outputs, params)
-        else:
+        if (params := signature_dict.get("params")) is None:
             return cls(inputs, outputs)
+        params = ParamSchema.from_json(params)
+        return cls(inputs, outputs, params)
 
     def __eq__(self, other) -> bool:
         return (
@@ -125,14 +122,7 @@ class ModelSignature:
         )
 
     def __repr__(self) -> str:
-        return (
-            "inputs: \n"
-            "  {}\n"
-            "outputs: \n"
-            "  {}\n"
-            "params: \n"
-            "  {}\n".format(repr(self.inputs), repr(self.outputs), repr(self.params))
-        )
+        return f"inputs: \n  {repr(self.inputs)}\noutputs: \n  {repr(self.outputs)}\nparams: \n  {repr(self.params)}\n"
 
 
 def infer_signature(

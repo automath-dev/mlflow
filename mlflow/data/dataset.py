@@ -71,10 +71,7 @@ class Dataset:
         """
         The name of the dataset, e.g. ``"iris_data"``, ``"myschema.mycatalog.mytable@v1"``, etc.
         """
-        if self._name is not None:
-            return self._name
-        else:
-            return "dataset"
+        return self._name if self._name is not None else "dataset"
 
     @property
     def digest(self) -> str:

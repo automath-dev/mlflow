@@ -262,19 +262,19 @@ class _DownloadThenConvertDataset(_LocationBasedDataset):
                         ),
                         error_code=INVALID_PARAMETER_VALUE,
                     )
-            else:
-                if self.dataset_format != "custom" and not local_dataset_path.endswith(
-                    f".{self.dataset_format}"
-                ):
-                    raise MlflowException(
-                        message=(
-                            f"Resolved data file with path '{local_dataset_path}' does not have the"
-                            f" expected format '{self.dataset_format}'."
-                        ),
-                        error_code=INVALID_PARAMETER_VALUE,
-                    )
+            elif self.dataset_format == "custom" or local_dataset_path.endswith(
+                f".{self.dataset_format}"
+            ):
                 dataset_file_paths = [local_dataset_path]
 
+            else:
+                raise MlflowException(
+                    message=(
+                        f"Resolved data file with path '{local_dataset_path}' does not have the"
+                        f" expected format '{self.dataset_format}'."
+                    ),
+                    error_code=INVALID_PARAMETER_VALUE,
+                )
             _logger.debug("Resolved input data to '%s'", local_dataset_path)
             _logger.debug("Converting dataset to parquet format, if necessary")
             return self._convert_to_parquet(
@@ -289,19 +289,15 @@ class _DownloadThenConvertDataset(_LocationBasedDataset):
         )
         if len(dest_locations) == 1:
             return dest_locations[0]
-        else:
-            res_path = pathlib.Path(dest_locations[0])
-            if res_path.is_dir():
-                return str(res_path)
-            else:
-                return str(res_path.parent)
+        res_path = pathlib.Path(dest_locations[0])
+        return str(res_path) if res_path.is_dir() else str(res_path.parent)
 
     @staticmethod
     def _download_all_datasets_in_parallel(dataset_location, dst_path):
         num_cpus = os.cpu_count() or _NUM_DEFAULT_CPUS
         with ThreadPoolExecutor(
-            max_workers=min(num_cpus * _NUM_MAX_THREADS_PER_CPU, _NUM_MAX_THREADS)
-        ) as executor:
+                max_workers=min(num_cpus * _NUM_MAX_THREADS_PER_CPU, _NUM_MAX_THREADS)
+            ) as executor:
             futures = []
             for location in dataset_location:
                 future = executor.submit(
@@ -311,34 +307,32 @@ class _DownloadThenConvertDataset(_LocationBasedDataset):
                 )
                 futures.append(future)
 
-            dest_locations = []
             failed_downloads = []
+            dest_locations = []
             for future in as_completed(futures):
                 try:
                     dest_locations.append(future.result())
                 except Exception as e:
                     failed_downloads.append(repr(e))
-            if len(failed_downloads) > 0:
+            if failed_downloads:
                 raise MlflowException(
-                    "During downloading of the datasets a number "
-                    + f"of errors have occurred: {failed_downloads}"
+                    f"During downloading of the datasets a number of errors have occurred: {failed_downloads}"
                 )
             return dest_locations
 
     @staticmethod
     def _download_one_dataset(dataset_location: str, dst_path: str):
         parsed_location_uri = urlparse(dataset_location)
-        if parsed_location_uri.scheme in ["http", "https"]:
-            dst_file_name = posixpath.basename(parsed_location_uri.path)
-            dst_file_path = os.path.join(dst_path, dst_file_name)
-            download_file_using_http_uri(
-                http_uri=dataset_location,
-                download_path=dst_file_path,
-                chunk_size=_DownloadThenConvertDataset._FILE_DOWNLOAD_CHUNK_SIZE_BYTES,
-            )
-            return dst_file_path
-        else:
+        if parsed_location_uri.scheme not in ["http", "https"]:
             return download_artifacts(artifact_uri=dataset_location, dst_path=dst_path)
+        dst_file_name = posixpath.basename(parsed_location_uri.path)
+        dst_file_path = os.path.join(dst_path, dst_file_name)
+        download_file_using_http_uri(
+            http_uri=dataset_location,
+            download_path=dst_file_path,
+            chunk_size=_DownloadThenConvertDataset._FILE_DOWNLOAD_CHUNK_SIZE_BYTES,
+        )
+        return dst_file_path
 
     @abstractmethod
     def _convert_to_parquet(self, dataset_file_paths: List[str], dst_path: str):

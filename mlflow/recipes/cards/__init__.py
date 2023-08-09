@@ -154,10 +154,7 @@ class BaseCard:
 
         :param name: a string representing the name of the tab.
         """
-        for key, tab in self._tabs:
-            if key == name:
-                return tab
-        return None
+        return next((tab for key, tab in self._tabs if key == name), None)
 
     def add_text(self, text: str) -> BaseCard:
         """

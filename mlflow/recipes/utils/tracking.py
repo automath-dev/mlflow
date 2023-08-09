@@ -243,16 +243,13 @@ def get_run_tags_env_vars(recipe_root_path: str) -> Dict[str, str]:
     run_context_tags = resolve_tags()
 
     git_tags = {}
-    git_repo_url = get_git_repo_url(path=recipe_root_path)
-    if git_repo_url:
+    if git_repo_url := get_git_repo_url(path=recipe_root_path):
         git_tags[MLFLOW_SOURCE_NAME] = git_repo_url
         git_tags[MLFLOW_GIT_REPO_URL] = git_repo_url
         git_tags[LEGACY_MLFLOW_GIT_REPO_URL] = git_repo_url
-    git_commit = get_git_commit(path=recipe_root_path)
-    if git_commit:
+    if git_commit := get_git_commit(path=recipe_root_path):
         git_tags[MLFLOW_GIT_COMMIT] = git_commit
-    git_branch = get_git_branch(path=recipe_root_path)
-    if git_branch:
+    if git_branch := get_git_branch(path=recipe_root_path):
         git_tags[MLFLOW_GIT_BRANCH] = git_branch
 
     return {MLFLOW_RUN_CONTEXT_ENV_VAR: json.dumps({**run_context_tags, **git_tags})}

@@ -383,15 +383,15 @@ def _get_reference_map():
     # Tracking entities
     for entity_name in mlflow.entities.__all__:
         entity_cls = getattr(mlflow.entities, entity_name)
-        invalid_ref = entity_cls.__module__ + "." + entity_name
-        valid_ref = "mlflow.entities.{}".format(entity_name)
+        invalid_ref = f"{entity_cls.__module__}.{entity_name}"
+        valid_ref = f"mlflow.entities.{entity_name}"
         ref_map[invalid_ref] = valid_ref
 
     # Model registry entities
     for entity_name in mlflow.entities.model_registry.__all__:
         entity_cls = getattr(mlflow.entities.model_registry, entity_name)
-        invalid_ref = entity_cls.__module__ + "." + entity_name
-        valid_ref = "mlflow.entities.model_registry.{}".format(entity_name)
+        invalid_ref = f"{entity_cls.__module__}.{entity_name}"
+        valid_ref = f"mlflow.entities.model_registry.{entity_name}"
         ref_map[invalid_ref] = valid_ref
 
     return ref_map

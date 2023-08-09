@@ -452,7 +452,7 @@ class _DivinerModelWrapper:
 
     def predict(
         self, dataframe, params: Optional[Dict[str, Any]] = None
-    ) -> pd.DataFrame:  # pylint: disable=unused-argument
+    ) -> pd.DataFrame:    # pylint: disable=unused-argument
         """
         A method that allows a pyfunc implementation of this flavor to generate forecasted values
         from the end of a trained Diviner model's training series per group.
@@ -509,9 +509,8 @@ class _DivinerModelWrapper:
                 "with different values. Please provide only one of these integer values.",
                 error_code=INVALID_PARAMETER_VALUE,
             )
-        else:
-            if not n_periods and horizon:
-                n_periods = horizon
+        if not n_periods and horizon:
+            n_periods = horizon
 
         if not n_periods:
             raise MlflowException(

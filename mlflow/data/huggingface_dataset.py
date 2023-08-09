@@ -145,21 +145,20 @@ class HuggingFaceDataset(Dataset, PyFuncConvertibleDatasetMixin):
 
     def to_pyfunc(self) -> PyFuncInputsOutputs:
         df = self._ds.to_pandas()
-        if self._targets is not None:
-            if self._targets not in df.columns:
-                raise MlflowException(
-                    f"Failed to convert Hugging Face dataset to pyfunc inputs and outputs because"
-                    f" the pandas representation of the Hugging Face dataset does not contain the"
-                    f" specified targets column '{self._targets}'.",
-                    # This is an internal error because we should have validated the presence of
-                    # the target column in the Hugging Face dataset at construction time
-                    INTERNAL_ERROR,
-                )
-            inputs = df.drop(columns=self._targets)
-            outputs = df[self._targets]
-            return PyFuncInputsOutputs(inputs=inputs, outputs=outputs)
-        else:
+        if self._targets is None:
             return PyFuncInputsOutputs(inputs=df, outputs=None)
+        if self._targets not in df.columns:
+            raise MlflowException(
+                f"Failed to convert Hugging Face dataset to pyfunc inputs and outputs because"
+                f" the pandas representation of the Hugging Face dataset does not contain the"
+                f" specified targets column '{self._targets}'.",
+                # This is an internal error because we should have validated the presence of
+                # the target column in the Hugging Face dataset at construction time
+                INTERNAL_ERROR,
+            )
+        inputs = df.drop(columns=self._targets)
+        outputs = df[self._targets]
+        return PyFuncInputsOutputs(inputs=inputs, outputs=outputs)
 
     def to_evaluation_dataset(self, path=None, feature_names=None) -> EvaluationDataset:
         """

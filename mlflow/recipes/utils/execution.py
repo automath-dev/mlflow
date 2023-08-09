@@ -284,7 +284,7 @@ class _ExecutionPlan:
 
         def get_step_to_run(output_line: str):
             m = re.search(_ExecutionPlan._MSG_REGEX, output_line)
-            return m.group(1) if m else None
+            return m[1] if m else None
 
         def steps_to_run():
             for output_line in output_lines_of_make:
@@ -313,7 +313,7 @@ class _ExecutionPlan:
             # All steps are cached
             return recipe_step_names[: index + 1]
 
-        first_step_index = min([recipe_step_names.index(step) for step in steps_to_run])
+        first_step_index = min(recipe_step_names.index(step) for step in steps_to_run)
         return recipe_step_names[:first_step_index]
 
     def print(self) -> None:
@@ -387,33 +387,32 @@ def _create_makefile(recipe_root_path, execution_directory_path, template) -> No
     """
     makefile_path = os.path.join(execution_directory_path, "Makefile")
 
-    if template == "regression/v1" or template == "classification/v1":
-        makefile_to_use = _MAKEFILE_FORMAT_STRING
-        steps_folder_path = os.path.join(recipe_root_path, "steps")
-        if not os.path.exists(steps_folder_path):
-            os.mkdir(steps_folder_path)
-        for required_file in [
-            "ingest.py",
-            "split.py",
-            "train.py",
-            "transform.py",
-            "custom_metrics.py",
-        ]:
-            required_file_path = os.path.join(steps_folder_path, required_file)
-            if not os.path.exists(required_file_path):
-                try:
-                    with open(required_file_path, "w") as f:
-                        f.write("# Created by MLflow Pipeliens\n")
-                except OSError:
-                    pass
-            if not os.path.exists(required_file_path):
-                raise ValueError(
-                    f"Can not find required file {required_file_path} from steps folder. "
-                    "Please create empty python file if the step is not used."
-                )
-    else:
+    if template not in ["regression/v1", "classification/v1"]:
         raise ValueError(f"Invalid template: {template}")
 
+    makefile_to_use = _MAKEFILE_FORMAT_STRING
+    steps_folder_path = os.path.join(recipe_root_path, "steps")
+    if not os.path.exists(steps_folder_path):
+        os.mkdir(steps_folder_path)
+    for required_file in [
+        "ingest.py",
+        "split.py",
+        "train.py",
+        "transform.py",
+        "custom_metrics.py",
+    ]:
+        required_file_path = os.path.join(steps_folder_path, required_file)
+        if not os.path.exists(required_file_path):
+            try:
+                with open(required_file_path, "w") as f:
+                    f.write("# Created by MLflow Pipeliens\n")
+            except OSError:
+                pass
+        if not os.path.exists(required_file_path):
+            raise ValueError(
+                f"Can not find required file {required_file_path} from steps folder. "
+                "Please create empty python file if the step is not used."
+            )
     makefile_contents = makefile_to_use.format(
         path=_MakefilePathFormat(
             os.path.abspath(recipe_root_path),

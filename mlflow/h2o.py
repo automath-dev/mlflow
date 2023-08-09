@@ -255,15 +255,12 @@ def _load_model(path, init=False):
 
     model_path = os.path.join(path, params["model_file"])
     if hasattr(h2o, "upload_model"):
-        model = h2o.upload_model(model_path)
-    else:
-        warnings.warn(
-            "If your cluster is remote, H2O may not load the model correctly. "
-            "Please upgrade H2O version to a newer version"
-        )
-        model = h2o.load_model(model_path)
-
-    return model
+        return h2o.upload_model(model_path)
+    warnings.warn(
+        "If your cluster is remote, H2O may not load the model correctly. "
+        "Please upgrade H2O version to a newer version"
+    )
+    return h2o.load_model(model_path)
 
 
 class _H2OModelWrapper:

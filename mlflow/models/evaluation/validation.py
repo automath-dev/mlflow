@@ -151,7 +151,7 @@ class MetricThreshold:
 
 class MetricThresholdClassException(MlflowException):
     def __init__(self, _message, **kwargs):
-        message = "Could not instantiate MetricThreshold class: " + _message
+        message = f"Could not instantiate MetricThreshold class: {_message}"
         super().__init__(message, error_code=INVALID_PARAMETER_VALUE, **kwargs)
 
 

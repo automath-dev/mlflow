@@ -76,9 +76,9 @@ class EvaluateStep(BaseStep):
             for metric in _get_custom_metrics(self.step_config, self.extended_task)
         }
         self.evaluation_metrics = {
-            metric.name: metric for metric in _get_builtin_metrics(self.extended_task)
-        }
-        self.evaluation_metrics.update(self.user_defined_custom_metrics)
+            metric.name: metric
+            for metric in _get_builtin_metrics(self.extended_task)
+        } | self.user_defined_custom_metrics
         if self.primary_metric is not None and self.primary_metric not in self.evaluation_metrics:
             raise MlflowException(
                 f"The primary metric '{self.primary_metric}' is a custom metric, but its"
@@ -93,8 +93,9 @@ class EvaluateStep(BaseStep):
         val_metrics = {vc["metric"] for vc in self.step_config.get("validation_criteria", [])}
         if not val_metrics:
             return
-        undefined_metrics = val_metrics.difference(self.evaluation_metrics.keys())
-        if undefined_metrics:
+        if undefined_metrics := val_metrics.difference(
+            self.evaluation_metrics.keys()
+        ):
             raise MlflowException(
                 f"Validation criteria contain undefined metrics: {sorted(undefined_metrics)}",
                 error_code=INVALID_PARAMETER_VALUE,
@@ -470,7 +471,7 @@ class EvaluateStep(BaseStep):
     def from_recipe_config(cls, recipe_config, recipe_root):
         step_config = {}
         if recipe_config.get("steps", {}).get("evaluate", {}) is not None:
-            step_config.update(recipe_config.get("steps", {}).get("evaluate", {}))
+            step_config |= recipe_config.get("steps", {}).get("evaluate", {})
         step_config["target_col"] = recipe_config.get("target_col")
         if "positive_class" in recipe_config:
             step_config["positive_class"] = recipe_config.get("positive_class")

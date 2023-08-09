@@ -343,23 +343,24 @@ class _StatsmodelsModelWrapper:
         from statsmodels.tsa.base.tsa_model import TimeSeriesModel
 
         model = self.statsmodels_model.model
-        if isinstance(model, TimeSeriesModel):
+        if not isinstance(model, TimeSeriesModel):
+            return self.statsmodels_model.predict(dataframe)
             # Assume the inference dataframe has columns "start" and "end", and just one row
             # TODO: move this to a specific mlflow.statsmodels.tsa flavor? Time series models
             # often expect slightly different arguments to make predictions
-            if dataframe.shape[0] != 1 or not (
-                "start" in dataframe.columns and "end" in dataframe.columns
-            ):
-                raise MlflowException(
-                    "prediction dataframes for a TimeSeriesModel must have exactly one row"
-                    + " and include columns called start and end"
-                )
+        if (
+            dataframe.shape[0] != 1
+            or "start" not in dataframe.columns
+            or "end" not in dataframe.columns
+        ):
+            raise MlflowException(
+                "prediction dataframes for a TimeSeriesModel must have exactly one row"
+                + " and include columns called start and end"
+            )
 
-            start_date = dataframe["start"][0]
-            end_date = dataframe["end"][0]
-            return self.statsmodels_model.predict(start=start_date, end=end_date)
-        else:
-            return self.statsmodels_model.predict(dataframe)
+        start_date = dataframe["start"][0]
+        end_date = dataframe["end"][0]
+        return self.statsmodels_model.predict(start=start_date, end=end_date)
 
 
 class AutologHelpers:
@@ -404,7 +405,7 @@ def _get_autolog_metrics(fitted_model):
         except Exception:
             failed_evaluating_metrics.add(metric)
 
-    if len(failed_evaluating_metrics) > 0:
+    if failed_evaluating_metrics:
         _logger.warning(
             f"Failed to autolog metrics: {', '.join(sorted(failed_evaluating_metrics))}."
         )

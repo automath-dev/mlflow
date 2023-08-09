@@ -44,9 +44,7 @@ class ArtifactRepositoryRegistry:
                 self.register(entrypoint.name, entrypoint.load())
             except (AttributeError, ImportError) as exc:
                 warnings.warn(
-                    'Failure attempting to register artifact repository for scheme "{}": {}'.format(
-                        entrypoint.name, str(exc)
-                    ),
+                    f'Failure attempting to register artifact repository for scheme "{entrypoint.name}": {str(exc)}',
                     stacklevel=2,
                 )
 
@@ -64,10 +62,7 @@ class ArtifactRepositoryRegistry:
         repository = self._registry.get(scheme)
         if repository is None:
             raise MlflowException(
-                "Could not find a registered artifact repository for: {}. "
-                "Currently registered schemes are: {}".format(
-                    artifact_uri, list(self._registry.keys())
-                )
+                f"Could not find a registered artifact repository for: {artifact_uri}. Currently registered schemes are: {list(self._registry.keys())}"
             )
         return repository(artifact_uri)
 

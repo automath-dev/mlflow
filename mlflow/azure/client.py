@@ -155,11 +155,10 @@ def put_block_list(sas_url, block_list, headers):
 def _append_query_parameters(url, parameters):
     parsed_url = urllib.parse.urlparse(url)
     query_dict = dict(urllib.parse.parse_qsl(parsed_url.query))
-    query_dict.update(parameters)
+    query_dict |= parameters
     new_query = urllib.parse.urlencode(query_dict)
     new_url_components = parsed_url._replace(query=new_query)
-    new_url = urllib.parse.urlunparse(new_url_components)
-    return new_url
+    return urllib.parse.urlunparse(new_url_components)
 
 
 def _build_block_list_xml(block_list):

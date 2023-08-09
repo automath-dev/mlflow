@@ -39,7 +39,7 @@ def timer():
 
 def main():
     KiB = 1024
-    MiB = KiB * KiB
+    MiB = KiB**2
     GiB = MiB * KiB
 
     # Uncomment the following lines if you're running this script outside of Databricks

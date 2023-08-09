@@ -105,7 +105,7 @@ def _get_split_df(input_df, hash_buckets, split_ratios):
     ]
     test_df = input_df[hash_buckets.map(lambda x: x >= validation_bucket_end)]
 
-    empty_splits = [
+    if empty_splits := [
         split_name
         for split_name, split_df in [
             ("train split", train_df),
@@ -113,8 +113,7 @@ def _get_split_df(input_df, hash_buckets, split_ratios):
             ("test split", test_df),
         ]
         if len(split_df) == 0
-    ]
-    if len(empty_splits) > 0:
+    ]:
         _logger.warning(f"The following input dataset splits are empty: {','.join(empty_splits)}.")
     return train_df, validation_df, test_df
 
@@ -456,7 +455,7 @@ class SplitStep(BaseStep):
     def from_recipe_config(cls, recipe_config, recipe_root):
         step_config = {}
         if recipe_config.get("steps", {}).get("split", {}) is not None:
-            step_config.update(recipe_config.get("steps", {}).get("split", {}))
+            step_config |= recipe_config.get("steps", {}).get("split", {})
         step_config["target_col"] = recipe_config.get("target_col")
         step_config["positive_class"] = recipe_config.get("positive_class")
         step_config["recipe"] = recipe_config.get("recipe", "regression/v1")

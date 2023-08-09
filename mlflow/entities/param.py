@@ -40,10 +40,7 @@ class Param(_MLflowObject):
         return cls(proto.key, proto.value)
 
     def __eq__(self, __o):
-        if isinstance(__o, self.__class__):
-            return self._key == __o._key
-
-        return False
+        return self._key == __o._key if isinstance(__o, self.__class__) else False
 
     def __hash__(self):
         return hash(self._key)

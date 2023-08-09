@@ -142,8 +142,12 @@ def _create_model_automl(
         elif primary_metric in _SKLEARN_METRICS and primary_metric in evaluation_metrics:
             metric = _create_sklearn_metric_flaml(
                 primary_metric,
-                -1 if evaluation_metrics[primary_metric].greater_is_better else 1,
-                "macro" if extended_task in ["classification/multiclass"] else "binary",
+                -1
+                if evaluation_metrics[primary_metric].greater_is_better
+                else 1,
+                "macro"
+                if extended_task in {"classification/multiclass"}
+                else "binary",
             )
         elif primary_metric in evaluation_metrics:
             metric = _create_custom_metric_flaml(

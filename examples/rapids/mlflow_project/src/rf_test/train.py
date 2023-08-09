@@ -64,10 +64,7 @@ def _train(params, fpath, hyperopt=False):
 
     mlflow.sklearn.log_model(mod, "saved_models", signature=signature)
 
-    if not hyperopt:
-        return mod
-
-    return {"loss": acc, "status": STATUS_OK}
+    return mod if not hyperopt else {"loss": acc, "status": STATUS_OK}
 
 
 def train(params, fpath, hyperopt=False):

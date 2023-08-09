@@ -255,12 +255,11 @@ def _validate_server_args(gunicorn_opts=None, workers=None, waitress_opts=None):
                 "waitress replaces gunicorn on Windows, "
                 "cannot specify --gunicorn-opts or --workers"
             )
-    else:
-        if waitress_opts is not None:
-            raise NotImplementedError(
-                "gunicorn replaces waitress on non-Windows platforms, "
-                "cannot specify --waitress-opts"
-            )
+    elif waitress_opts is not None:
+        raise NotImplementedError(
+            "gunicorn replaces waitress on non-Windows platforms, "
+            "cannot specify --waitress-opts"
+        )
 
 
 def _validate_static_prefix(ctx, param, value):  # pylint: disable=unused-argument
@@ -527,11 +526,7 @@ def gc(older_than, backend_store_uri, run_ids, experiment_ids):
         time_delta = int(timedelta(**time_params).total_seconds() * 1000)
 
     deleted_run_ids_older_than = backend_store._get_deleted_runs(older_than=time_delta)
-    if not run_ids:
-        run_ids = deleted_run_ids_older_than
-    else:
-        run_ids = run_ids.split(",")
-
+    run_ids = deleted_run_ids_older_than if not run_ids else run_ids.split(",")
     time_threshold = get_current_time_millis() - time_delta
     if not skip_experiments:
         if experiment_ids:
@@ -657,28 +652,18 @@ cli.add_command(mlflow.db.commands)
 
 # We are conditional loading these commands since the skinny client does
 # not support them due to the pandas and numpy dependencies of MLflow Models
-try:
+with contextlib.suppress(ImportError):
     import mlflow.models.cli  # pylint: disable=unused-import
 
     cli.add_command(mlflow.models.cli.commands)
-except ImportError:
-    pass
-
-try:
+with contextlib.suppress(ImportError):
     import mlflow.recipes.cli  # pylint: disable=unused-import
 
     cli.add_command(mlflow.recipes.cli.commands)
-except ImportError:
-    pass
-
-try:
+with contextlib.suppress(ImportError):
     import mlflow.sagemaker.cli  # pylint: disable=unused-import
 
     cli.add_command(mlflow.sagemaker.cli.commands)
-except ImportError:
-    pass
-
-
 with contextlib.suppress(ImportError):
     import mlflow.gateway.cli
 

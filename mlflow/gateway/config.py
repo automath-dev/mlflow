@@ -158,11 +158,7 @@ def _resolve_api_key_from_input(api_key_input):
 
     # try reading from a local path
     file = pathlib.Path(api_key_input)
-    if file.is_file():
-        return file.read_text()
-
-    # if the key itself is passed, return
-    return api_key_input
+    return file.read_text() if file.is_file() else api_key_input
 
 
 # pylint: disable=no-self-argument

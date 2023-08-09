@@ -184,8 +184,9 @@ def _get_custom_metrics(step_config: Dict, ext_task: str) -> List[Dict]:
     ]
     custom_metric_names = {metric.name for metric in custom_metrics}
     builtin_metric_names = {metric.name for metric in _get_builtin_metrics(ext_task)}
-    overridden_builtin_metrics = custom_metric_names.intersection(builtin_metric_names)
-    if overridden_builtin_metrics:
+    if overridden_builtin_metrics := custom_metric_names.intersection(
+        builtin_metric_names
+    ):
         _logger.warning(
             "Custom metrics override the following built-in metrics: %s",
             sorted(overridden_builtin_metrics),

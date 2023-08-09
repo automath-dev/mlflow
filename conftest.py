@@ -112,8 +112,7 @@ def pytest_terminal_summary(
     terminalreporter, exitstatus, config
 ):  # pylint: disable=unused-argument
     yield
-    failed_test_reports = terminalreporter.stats.get("failed", [])
-    if failed_test_reports:
+    if failed_test_reports := terminalreporter.stats.get("failed", []):
         if len(failed_test_reports) <= 30:
             terminalreporter.section("command to run failed test cases")
             ids = [repr(report.nodeid) for report in failed_test_reports]

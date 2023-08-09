@@ -549,9 +549,11 @@ def _get_conda_and_pip_dependencies(conda_env):
 
     for dependency in conda_env["dependencies"]:
         if isinstance(dependency, dict) and dependency["pip"]:
-            for pip_dependency in dependency["pip"]:
-                if pip_dependency != "mlflow":
-                    pip_deps.append(pip_dependency)
+            pip_deps.extend(
+                pip_dependency
+                for pip_dependency in dependency["pip"]
+                if pip_dependency != "mlflow"
+            )
         else:
             package_name = _get_package_name(dependency)
             if package_name is not None and package_name not in ["python", "pip"]:

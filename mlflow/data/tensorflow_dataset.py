@@ -136,12 +136,10 @@ class TensorFlowDataset(Dataset, PyFuncConvertibleDatasetMixin):
             else int(tf.size(self._features).numpy()),
         }
         if self._targets is not None:
-            profile.update(
-                {
-                    "targets_cardinality": int(self._targets.cardinality().numpy())
-                    if isinstance(self._targets, tf.data.Dataset)
-                    else int(tf.size(self._targets).numpy()),
-                }
+            profile["targets_cardinality"] = (
+                int(self._targets.cardinality().numpy())
+                if isinstance(self._targets, tf.data.Dataset)
+                else int(tf.size(self._targets).numpy())
             )
         return profile
 
@@ -274,16 +272,15 @@ def from_tensorflow(
     from mlflow.data.dataset_source_registry import resolve_dataset_source
     from mlflow.tracking.context import registry
 
-    if source is not None:
-        if isinstance(source, DatasetSource):
-            resolved_source = source
-        else:
-            resolved_source = resolve_dataset_source(
-                source,
-            )
-    else:
+    if source is None:
         context_tags = registry.resolve_tags()
         resolved_source = CodeDatasetSource(tags=context_tags)
+    elif isinstance(source, DatasetSource):
+        resolved_source = source
+    else:
+        resolved_source = resolve_dataset_source(
+            source,
+        )
     return TensorFlowDataset(
         features=features, source=resolved_source, targets=targets, name=name, digest=digest
     )
